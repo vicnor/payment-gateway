@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.gateway</groupId>
+    <artifactId>payment-gateway-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>payment-gateway-services</artifactId>
+  <packaging>pom</packaging>
+
+  <name>Payment Gateway — Services</name>
+  <description>Aggregator for independently deployable services</description>
+
+  <modules>
+    <!-- Populated as services are built (Phase 1+):
+         checkout-service, token-service, payment-service,
+         webhook-service, merchant-service, test-acquirer-service -->
+  </modules>
+
+  <!--
+    ADR-0002: When services are added as modules, activate the maven-enforcer-plugin
+    bannedDependencies rule here to prevent cross-service compile dependencies
+    (ban com.gateway.<service>:* from depending on another com.gateway.<service>:*).
+    Cross-service communication must go through HTTP or SNS/SQS events only.
+  -->
+
+</project>

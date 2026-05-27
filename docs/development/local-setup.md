@@ -19,7 +19,7 @@ human-driven local development; Testcontainers is for automated tests.
 ## Prerequisites
 
 - Docker Desktop (or compatible — colima, OrbStack on macOS work fine)
-- Java 21 (Temurin or similar — `sdkman` recommended)
+- Java 25 (Temurin or similar — `sdkman` recommended)
 - Node 20+ (for the frontend — `fnm` or `nvm`)
 - `pnpm` for the frontend
 - AWS CLI v2 (for talking to LocalStack via `aws --endpoint-url=...`)

@@ -110,7 +110,7 @@ cd frontend/checkout-ui && pnpm format
 
 ### Code style
 
-- Java 21 features OK: records, pattern matching, sealed types, text blocks. Prefer records for DTOs.
+- Java 25 features OK: records, pattern matching, sealed types, text blocks. Prefer records for DTOs.
 - Use Lombok sparingly — `@Slf4j` is fine; avoid `@Data`/`@Builder` on JPA entities.
 - Spring: constructor injection only. No field injection. No `@Autowired` on fields.
 - All `Money` values are minor units (integer). Never floats anywhere.
