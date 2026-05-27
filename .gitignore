@@ -1,0 +1,48 @@
+# Java / Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.pnpm-store/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+!**/test-keys/*.pem
+
+# Logs
+*.log
+logs/
+
+# Testcontainers
+.testcontainers/
+
+# Coverage
+coverage/
+*.lcov
+jacoco.exec
+
+# OS-level temp
+*.swp
+*~
