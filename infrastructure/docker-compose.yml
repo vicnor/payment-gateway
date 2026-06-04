@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: gateway
+      POSTGRES_MULTIPLE_DATABASES: payment,webhook,merchant
+    volumes:
+      - ./scripts/init-multiple-postgres-dbs.sh:/docker-entrypoint-initdb.d/init.sh
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:2.5.2
+    ports: ["8000:8000"]
+    # -inMemory: avoids volume permission issues; dev-down -v wipes state anyway
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    # No healthcheck: the image ships no curl/wget. Readiness is probed by
+    # the wait-for-ready Makefile target before bootstrap runs.
+
+  localstack:
+    image: localstack/localstack:4.2
+    ports: ["4566:4566"]
+    environment:
+      SERVICES: sns,sqs,kms
+      DEBUG: 0
+      PERSISTENCE: 1
+      AWS_DEFAULT_REGION: eu-north-1
+    volumes:
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      retries: 10
+
+  # test-acquirer is opt-in. Will fail to build until task 3.1 creates
+  # services/test-acquirer-service. Use: docker compose --profile full up
+  test-acquirer:
+    build: ../services/test-acquirer-service
+    ports: ["8090:8080"]
+    profiles: ["full"]
+    depends_on:
+      localstack: { condition: service_healthy }
+
+volumes:
+  pg-data:
+  localstack-data:
