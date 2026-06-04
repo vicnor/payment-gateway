@@ -46,7 +46,7 @@ Create empty-ish modules so other code can depend on them.
 
 **Context:** `docs/architecture/overview.md` (event envelope shape, error envelope)
 
-### 0.3 Local infra
+### ✅ 0.3 Local infra
 
 Get docker-compose + LocalStack + DynamoDB Local working.
 
