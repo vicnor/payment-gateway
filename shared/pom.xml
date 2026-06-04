@@ -17,8 +17,11 @@
   <description>Aggregator for cross-cutting shared modules</description>
 
   <modules>
-    <!-- Populated in task 0.2:
-         shared-events, shared-api, shared-security, shared-web, shared-testing -->
+    <module>shared-events</module>
+    <module>shared-api</module>
+    <module>shared-security</module>
+    <module>shared-web</module>
+    <module>shared-testing</module>
   </modules>
 
 </project>
