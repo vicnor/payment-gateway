@@ -29,7 +29,7 @@ Set up the multi-module Maven project. No services yet, just the skeleton.
 
 **Context:** `docs/adr/0002-maven-multimodule-monorepo.md`
 
-### 0.2 Shared modules — initial skeletons
+### ✅ 0.2 Shared modules — initial skeletons
 
 Create empty-ish modules so other code can depend on them.
 

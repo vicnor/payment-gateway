@@ -1,0 +1,7 @@
+{
+  "allowedTools": [
+    "Bash(./mvnw *)",
+    "Bash(mvn *)",
+    "Bash(make *)"
+  ]
+}

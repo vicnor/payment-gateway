@@ -29,6 +29,9 @@
     <junit-bom.version>5.14.4</junit-bom.version>
     <testcontainers.version>1.21.4</testcontainers.version>
 
+    <!-- Library versions -->
+    <ulid-creator.version>5.2.3</ulid-creator.version>
+
     <!-- Plugin versions -->
     <spotless.version>3.6.0</spotless.version>
     <google-java-format.version>1.35.0</google-java-format.version>
@@ -69,6 +72,11 @@
         <version>${aws-sdk.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.github.f4b6a3</groupId>
+        <artifactId>ulid-creator</artifactId>
+        <version>${ulid-creator.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
