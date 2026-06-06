@@ -9,24 +9,24 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public abstract class AbstractDynamoIT {
 
-  private static final int DYNAMO_PORT = 8000;
+    private static final int DYNAMO_PORT = 8000;
 
-  @SuppressWarnings("resource")
-  private static final GenericContainer<?> DYNAMO =
-      new GenericContainer<>(DockerImageName.parse("amazon/dynamodb-local:2.5.2"))
-          .withExposedPorts(DYNAMO_PORT)
-          .withCommand("-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb");
+    @SuppressWarnings("resource")
+    private static final GenericContainer<?> DYNAMO =
+            new GenericContainer<>(DockerImageName.parse("amazon/dynamodb-local:2.5.2"))
+                    .withExposedPorts(DYNAMO_PORT)
+                    .withCommand("-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb");
 
-  static {
-    DYNAMO.start();
-  }
+    static {
+        DYNAMO.start();
+    }
 
-  @DynamicPropertySource
-  static void dynamoProperties(DynamicPropertyRegistry registry) {
-    registry.add("gateway.dynamodb.endpoint", AbstractDynamoIT::dynamoEndpoint);
-  }
+    @DynamicPropertySource
+    static void dynamoProperties(DynamicPropertyRegistry registry) {
+        registry.add("gateway.dynamodb.endpoint", AbstractDynamoIT::dynamoEndpoint);
+    }
 
-  public static String dynamoEndpoint() {
-    return "http://" + DYNAMO.getHost() + ":" + DYNAMO.getMappedPort(DYNAMO_PORT);
-  }
+    public static String dynamoEndpoint() {
+        return "http://" + DYNAMO.getHost() + ":" + DYNAMO.getMappedPort(DYNAMO_PORT);
+    }
 }

@@ -80,7 +80,7 @@ Empty Spring Boot service on port 8101.
 - Flyway migration `V001__init.sql` creates `merchants`, `api_keys`, `webhook_secrets` tables
 - Integration test runs against Testcontainers Postgres and passes
 
-### 1.2 Admin endpoints
+### ✅ 1.2 Admin endpoints
 
 The endpoints we use to manually onboard merchants in v1.
 

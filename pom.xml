@@ -31,6 +31,7 @@
 
     <!-- Library versions -->
     <ulid-creator.version>5.2.3</ulid-creator.version>
+    <bouncycastle.version>1.80</bouncycastle.version>
 
     <!-- Plugin versions -->
     <spotless.version>3.6.0</spotless.version>
@@ -80,6 +81,11 @@
         <artifactId>ulid-creator</artifactId>
         <version>${ulid-creator.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -90,6 +96,9 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>${maven-compiler-plugin.version}</version>
+          <configuration>
+            <parameters>true</parameters>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.springframework.boot</groupId>
@@ -127,7 +136,7 @@
           <java>
             <googleJavaFormat>
               <version>${google-java-format.version}</version>
-              <style>GOOGLE</style>
+              <style>AOSP</style>
             </googleJavaFormat>
           </java>
         </configuration>

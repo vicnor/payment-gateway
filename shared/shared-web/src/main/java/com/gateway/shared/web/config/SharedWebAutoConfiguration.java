@@ -11,18 +11,18 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnWebApplication
 public class SharedWebAutoConfiguration {
 
-  @Bean
-  public RequestIdFilter requestIdFilter() {
-    return new RequestIdFilter();
-  }
+    @Bean
+    public RequestIdFilter requestIdFilter() {
+        return new RequestIdFilter();
+    }
 
-  @Bean
-  public RequestLoggingFilter requestLoggingFilter() {
-    return new RequestLoggingFilter();
-  }
+    @Bean
+    public RequestLoggingFilter requestLoggingFilter() {
+        return new RequestLoggingFilter();
+    }
 
-  @Bean
-  public GlobalExceptionHandler globalExceptionHandler() {
-    return new GlobalExceptionHandler();
-  }
+    @Bean
+    public GlobalExceptionHandler globalExceptionHandler() {
+        return new GlobalExceptionHandler();
+    }
 }

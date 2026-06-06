@@ -24,48 +24,48 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(SharedWebAutoConfiguration.class)
 class RequestLoggingFilterTest {
 
-  @Autowired MockMvc mockMvc;
+    @Autowired MockMvc mockMvc;
 
-  private ListAppender<ILoggingEvent> listAppender;
-  private Logger filterLogger;
+    private ListAppender<ILoggingEvent> listAppender;
+    private Logger filterLogger;
 
-  @BeforeEach
-  void attachAppender() {
-    filterLogger = (Logger) LoggerFactory.getLogger(RequestLoggingFilter.class);
-    listAppender = new ListAppender<>();
-    listAppender.start();
-    filterLogger.addAppender(listAppender);
-  }
+    @BeforeEach
+    void attachAppender() {
+        filterLogger = (Logger) LoggerFactory.getLogger(RequestLoggingFilter.class);
+        listAppender = new ListAppender<>();
+        listAppender.start();
+        filterLogger.addAppender(listAppender);
+    }
 
-  @AfterEach
-  void detachAppender() {
-    filterLogger.detachAppender(listAppender);
-  }
+    @AfterEach
+    void detachAppender() {
+        filterLogger.detachAppender(listAppender);
+    }
 
-  @Test
-  void logsOneLineWithMethodPathStatusDuration() throws Exception {
-    mockMvc.perform(get("/test/ping")).andExpect(status().isOk());
+    @Test
+    void logsOneLineWithMethodPathStatusDuration() throws Exception {
+        mockMvc.perform(get("/test/ping")).andExpect(status().isOk());
 
-    var events = listAppender.list;
-    assertTrue(events.size() == 1, "Expected exactly one log line per request");
-    String message = events.get(0).getFormattedMessage();
-    assertTrue(message.contains("method=GET"), "Log should contain method");
-    assertTrue(message.contains("path=/test/ping"), "Log should contain path");
-    assertTrue(message.contains("status=200"), "Log should contain status");
-    assertTrue(message.contains("duration_ms="), "Log should contain duration_ms");
-  }
+        var events = listAppender.list;
+        assertTrue(events.size() == 1, "Expected exactly one log line per request");
+        String message = events.get(0).getFormattedMessage();
+        assertTrue(message.contains("method=GET"), "Log should contain method");
+        assertTrue(message.contains("path=/test/ping"), "Log should contain path");
+        assertTrue(message.contains("status=200"), "Log should contain status");
+        assertTrue(message.contains("duration_ms="), "Log should contain duration_ms");
+    }
 
-  @Test
-  void queryStringIsNeverLogged() throws Exception {
-    mockMvc.perform(get("/test/ping").param("k", "supersecret")).andExpect(status().isOk());
+    @Test
+    void queryStringIsNeverLogged() throws Exception {
+        mockMvc.perform(get("/test/ping").param("k", "supersecret")).andExpect(status().isOk());
 
-    var events = listAppender.list;
-    assertFalse(events.isEmpty());
-    String message = events.get(0).getFormattedMessage();
-    // Path must not include the query string
-    assertFalse(
-        message.contains("supersecret"),
-        "Query string must never appear in log (could leak session secrets)");
-    assertFalse(message.contains("?"), "Query string delimiter must not appear in logged path");
-  }
+        var events = listAppender.list;
+        assertFalse(events.isEmpty());
+        String message = events.get(0).getFormattedMessage();
+        // Path must not include the query string
+        assertFalse(
+                message.contains("supersecret"),
+                "Query string must never appear in log (could leak session secrets)");
+        assertFalse(message.contains("?"), "Query string delimiter must not appear in logged path");
+    }
 }
