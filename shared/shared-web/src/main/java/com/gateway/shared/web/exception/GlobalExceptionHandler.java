@@ -2,6 +2,7 @@ package com.gateway.shared.web.exception;
 
 import com.gateway.shared.web.error.ApiException;
 import com.gateway.shared.web.error.ErrorEnvelope;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -41,11 +42,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorEnvelope> handleConstraintViolation(
-            ConstraintViolationException ex) {
+    public ResponseEntity<ErrorEnvelope> handleConstraintViolation(ConstraintViolationException ex) {
         var first = ex.getConstraintViolations().stream().findFirst();
         String param = first.map(v -> v.getPropertyPath().toString()).orElse(null);
-        String message = first.map(v -> v.getMessage()).orElse("Validation failed.");
+        String message = first.map(ConstraintViolation::getMessage).orElse("Validation failed.");
         return ResponseEntity.badRequest()
                 .body(
                         ErrorEnvelope.of(

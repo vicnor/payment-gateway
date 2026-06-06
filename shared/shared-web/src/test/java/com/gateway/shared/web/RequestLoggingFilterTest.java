@@ -1,7 +1,6 @@
 package com.gateway.shared.web;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -47,8 +46,8 @@ class RequestLoggingFilterTest {
         mockMvc.perform(get("/test/ping")).andExpect(status().isOk());
 
         var events = listAppender.list;
-        assertTrue(events.size() == 1, "Expected exactly one log line per request");
-        String message = events.get(0).getFormattedMessage();
+        assertEquals(1, events.size(), "Expected exactly one log line per request");
+        String message = events.getFirst().getFormattedMessage();
         assertTrue(message.contains("method=GET"), "Log should contain method");
         assertTrue(message.contains("path=/test/ping"), "Log should contain path");
         assertTrue(message.contains("status=200"), "Log should contain status");
@@ -61,7 +60,7 @@ class RequestLoggingFilterTest {
 
         var events = listAppender.list;
         assertFalse(events.isEmpty());
-        String message = events.get(0).getFormattedMessage();
+        String message = events.getFirst().getFormattedMessage();
         // Path must not include the query string
         assertFalse(
                 message.contains("supersecret"),

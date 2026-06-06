@@ -151,7 +151,7 @@ class MerchantAdminIT extends AbstractPostgresIT {
         List<WebhookSecret> inactive =
                 webhookSecretRepository.findByMerchantIdAndActive(merchantId, false);
         assertThat(inactive).hasSize(1);
-        assertThat(inactive.get(0).getRotatedAt()).isNotNull();
+        assertThat(inactive.getFirst().getRotatedAt()).isNotNull();
 
         var firstPersisted = webhookSecretRepository.findById(first.getBody().id()).orElseThrow();
         assertThat(firstPersisted.isActive()).isFalse();

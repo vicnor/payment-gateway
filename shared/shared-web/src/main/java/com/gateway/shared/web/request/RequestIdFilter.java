@@ -18,8 +18,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
     static final String RESPONSE_HEADER = "X-Request-Id";
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String requestId = "req_" + UlidCreator.getUlid().toString();
         MDC.put(MDC_KEY, requestId);

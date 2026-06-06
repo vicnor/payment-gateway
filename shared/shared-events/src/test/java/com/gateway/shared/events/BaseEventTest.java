@@ -1,10 +1,9 @@
 package com.gateway.shared.events;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class BaseEventTest {
 
@@ -24,7 +23,7 @@ class BaseEventTest {
     void nowSetsCorrectType() {
         BaseEvent event = BaseEvent.now(EventType.CHECKOUT_COMPLETED);
         assertNotNull(event.type());
-        assertTrue(event.type() == EventType.CHECKOUT_COMPLETED);
+        assertSame(EventType.CHECKOUT_COMPLETED, event.type());
     }
 
     @Test
@@ -33,8 +32,8 @@ class BaseEventTest {
         BaseEvent event = BaseEvent.now(EventType.PAYMENT_FAILED);
         Instant after = Instant.now();
         assertNotNull(event.created());
-        assertTrue(!event.created().isBefore(before), "created should be >= before");
-        assertTrue(!event.created().isAfter(after), "created should be <= after");
+        assertFalse(event.created().isBefore(before), "created should be >= before");
+        assertFalse(event.created().isAfter(after), "created should be <= after");
     }
 
     @Test
@@ -45,7 +44,7 @@ class BaseEventTest {
     }
 
     private void assertEquals26UlidChars(String ulid) {
-        assertTrue(ulid.length() == 26, "ULID portion should be 26 chars, was: " + ulid.length());
+        assertEquals(26, ulid.length(), "ULID portion should be 26 chars, was: " + ulid.length());
         assertTrue(
                 ulid.matches("[0-9A-HJKMNP-TV-Z]{26}"),
                 "ULID should match Crockford base32 pattern");
