@@ -68,7 +68,7 @@ Get docker-compose + LocalStack + DynamoDB Local working.
 
 ## Phase 1 — merchant-service (everyone depends on it)
 
-### 1.1 merchant-service scaffold
+### ✅ 1.1 merchant-service scaffold
 
 Empty Spring Boot service on port 8101.
 
