@@ -14,20 +14,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class RequestIdFilter extends OncePerRequestFilter {
 
-  static final String MDC_KEY = "requestId";
-  static final String RESPONSE_HEADER = "X-Request-Id";
+    static final String MDC_KEY = "requestId";
+    static final String RESPONSE_HEADER = "X-Request-Id";
 
-  @Override
-  protected void doFilterInternal(
-      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-      throws ServletException, IOException {
-    String requestId = "req_" + UlidCreator.getUlid().toString();
-    MDC.put(MDC_KEY, requestId);
-    response.setHeader(RESPONSE_HEADER, requestId);
-    try {
-      chain.doFilter(request, response);
-    } finally {
-      MDC.remove(MDC_KEY);
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+        String requestId = "req_" + UlidCreator.getUlid().toString();
+        MDC.put(MDC_KEY, requestId);
+        response.setHeader(RESPONSE_HEADER, requestId);
+        try {
+            chain.doFilter(request, response);
+        } finally {
+            MDC.remove(MDC_KEY);
+        }
     }
-  }
 }

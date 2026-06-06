@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class EchoController {
 
-  @GetMapping("/test/ping")
-  String ping() {
-    return "pong";
-  }
+    @GetMapping("/test/ping")
+    String ping() {
+        return "pong";
+    }
 }

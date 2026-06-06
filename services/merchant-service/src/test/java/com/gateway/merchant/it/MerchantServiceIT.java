@@ -13,28 +13,40 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest(
-    classes = MerchantServiceApplication.class,
-    webEnvironment = WebEnvironment.RANDOM_PORT)
+        classes = MerchantServiceApplication.class,
+        webEnvironment = WebEnvironment.RANDOM_PORT)
 class MerchantServiceIT extends AbstractPostgresIT {
 
-  @Autowired private JdbcTemplate jdbcTemplate;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
-  @Autowired private TestRestTemplate restTemplate;
+    @Autowired private TestRestTemplate restTemplate;
 
-  @Test
-  void migrationCreatesAllTables() {
-    assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM merchants", Long.class)).isZero();
-    assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM api_keys", Long.class)).isZero();
-    assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM webhook_secrets", Long.class))
-        .isZero();
-  }
+    @Test
+    void migrationCreatesAllTables() {
+        Long merchantsTableCount =
+                jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM information_schema.tables WHERE table_name = 'merchants'",
+                        Long.class);
+        Long apiKeysTableCount =
+                jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM information_schema.tables WHERE table_name = 'api_keys'",
+                        Long.class);
+        Long webhookSecretsTableCount =
+                jdbcTemplate.queryForObject(
+                        "SELECT count(*) FROM information_schema.tables WHERE table_name = 'webhook_secrets'",
+                        Long.class);
+        assertThat(merchantsTableCount).isEqualTo(1L);
+        assertThat(apiKeysTableCount).isEqualTo(1L);
+        assertThat(webhookSecretsTableCount).isEqualTo(1L);
+    }
 
-  @Test
-  void healthEndpointReturnsUp() {
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/health", String.class);
+    @Test
+    void healthEndpointReturnsUp() {
+        ResponseEntity<String> response =
+                restTemplate.getForEntity("/actuator/health", String.class);
 
-    assertThat(response.getStatusCode().value()).isEqualTo(200);
-    assertThat(response.getBody()).contains("\"status\":\"UP\"");
-    assertThat(response.getHeaders().getFirst("X-Request-Id")).isNotNull();
-  }
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).contains("\"status\":\"UP\"");
+        assertThat(response.getHeaders().getFirst("X-Request-Id")).isNotNull();
+    }
 }

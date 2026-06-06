@@ -17,50 +17,50 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class TestController {
 
-  @GetMapping("/test/not-found")
-  String notFound() {
-    throw new NotFoundException("payment", "pay_123");
-  }
+    @GetMapping("/test/not-found")
+    String notFound() {
+        throw new NotFoundException("payment", "pay_123");
+    }
 
-  @GetMapping("/test/validation")
-  String validation() {
-    throw new ValidationException("invalid_amount", "Amount must be positive.", "amount");
-  }
+    @GetMapping("/test/validation")
+    String validation() {
+        throw new ValidationException("invalid_amount", "Amount must be positive.", "amount");
+    }
 
-  @GetMapping("/test/auth")
-  String auth() {
-    throw new AuthenticationException();
-  }
+    @GetMapping("/test/auth")
+    String auth() {
+        throw new AuthenticationException();
+    }
 
-  @GetMapping("/test/permission")
-  String permission() {
-    throw new PermissionException();
-  }
+    @GetMapping("/test/permission")
+    String permission() {
+        throw new PermissionException();
+    }
 
-  @GetMapping("/test/idempotency")
-  String idempotency() {
-    throw new IdempotencyConflictException();
-  }
+    @GetMapping("/test/idempotency")
+    String idempotency() {
+        throw new IdempotencyConflictException();
+    }
 
-  @GetMapping("/test/rate-limit")
-  String rateLimit() {
-    throw new RateLimitException();
-  }
+    @GetMapping("/test/rate-limit")
+    String rateLimit() {
+        throw new RateLimitException();
+    }
 
-  @GetMapping("/test/acquirer")
-  String acquirer() {
-    throw new AcquirerUnavailableException();
-  }
+    @GetMapping("/test/acquirer")
+    String acquirer() {
+        throw new AcquirerUnavailableException();
+    }
 
-  @GetMapping("/test/unexpected")
-  String unexpected() {
-    throw new RuntimeException("kaboom");
-  }
+    @GetMapping("/test/unexpected")
+    String unexpected() {
+        throw new RuntimeException("kaboom");
+    }
 
-  @PostMapping("/test/validate-body")
-  String validateBody(@Valid @RequestBody ValidatedRequest body) {
-    return "ok";
-  }
+    @PostMapping("/test/validate-body")
+    String validateBody(@Valid @RequestBody ValidatedRequest body) {
+        return "ok";
+    }
 
-  public record ValidatedRequest(@NotBlank(message = "name must not be blank") String name) {}
+    public record ValidatedRequest(@NotBlank(message = "name must not be blank") String name) {}
 }

@@ -13,34 +13,35 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
 class SharedWebAutoConfigurationTest {
 
-  private final WebApplicationContextRunner contextRunner =
-      new WebApplicationContextRunner()
-          .withConfiguration(
-              AutoConfigurations.of(
-                  SharedWebAutoConfiguration.class, WebMvcAutoConfiguration.class));
+    private final WebApplicationContextRunner contextRunner =
+            new WebApplicationContextRunner()
+                    .withConfiguration(
+                            AutoConfigurations.of(
+                                    SharedWebAutoConfiguration.class,
+                                    WebMvcAutoConfiguration.class));
 
-  @Test
-  void registersRequestIdFilter() {
-    contextRunner.run(ctx -> assertThat(ctx).hasSingleBean(RequestIdFilter.class));
-  }
+    @Test
+    void registersRequestIdFilter() {
+        contextRunner.run(ctx -> assertThat(ctx).hasSingleBean(RequestIdFilter.class));
+    }
 
-  @Test
-  void registersRequestLoggingFilter() {
-    contextRunner.run(ctx -> assertThat(ctx).hasSingleBean(RequestLoggingFilter.class));
-  }
+    @Test
+    void registersRequestLoggingFilter() {
+        contextRunner.run(ctx -> assertThat(ctx).hasSingleBean(RequestLoggingFilter.class));
+    }
 
-  @Test
-  void registersGlobalExceptionHandler() {
-    contextRunner.run(ctx -> assertThat(ctx).hasSingleBean(GlobalExceptionHandler.class));
-  }
+    @Test
+    void registersGlobalExceptionHandler() {
+        contextRunner.run(ctx -> assertThat(ctx).hasSingleBean(GlobalExceptionHandler.class));
+    }
 
-  @Test
-  void requestIdFilterHasHighestPrecedenceOrder() {
-    contextRunner.run(
-        ctx -> {
-          RequestIdFilter filter = ctx.getBean(RequestIdFilter.class);
-          // The filter implements Ordered via @Order — verify by checking the bean exists
-          assertThat(filter).isNotNull();
-        });
-  }
+    @Test
+    void requestIdFilterHasHighestPrecedenceOrder() {
+        contextRunner.run(
+                ctx -> {
+                    RequestIdFilter filter = ctx.getBean(RequestIdFilter.class);
+                    // The filter implements Ordered via @Order — verify by checking the bean exists
+                    assertThat(filter).isNotNull();
+                });
+    }
 }
