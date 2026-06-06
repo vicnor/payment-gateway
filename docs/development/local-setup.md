@@ -24,6 +24,7 @@ human-driven local development; Testcontainers is for automated tests.
 - `pnpm` for the frontend
 - AWS CLI v2 (for talking to LocalStack via `aws --endpoint-url=...`)
 - `jq` (used by bootstrap script)
+- `python3` (used by `make wait-for-ready` to parse LocalStack health JSON)
 - IntelliJ IDEA Ultimate or Community (with Maven support)
 
 Versions are pinned in `.tool-versions` (asdf compatible) at the repo root.
@@ -53,16 +54,13 @@ services:
   dynamodb-local:
     image: amazon/dynamodb-local:2.5.2
     ports: ["8000:8000"]
-    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/data"]
-    volumes:
-      - dynamo-data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
-      interval: 5s
-      retries: 5
+    # -inMemory: avoids volume permission issues; dev-down -v wipes state anyway
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    # No healthcheck: the image ships no curl/wget. Readiness is probed by
+    # the wait-for-ready Makefile target before bootstrap runs.
 
   localstack:
-    image: localstack/localstack:3.8
+    image: localstack/localstack:4.2
     ports: ["4566:4566"]
     environment:
       SERVICES: sns,sqs,kms
@@ -71,24 +69,36 @@ services:
       AWS_DEFAULT_REGION: eu-north-1
     volumes:
       - localstack-data:/var/lib/localstack
-      - ./scripts/bootstrap-aws.sh:/etc/localstack/init/ready.d/bootstrap.sh
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 5s
       retries: 10
 
+  # test-acquirer is opt-in. Will fail to build until task 3.1 creates
+  # services/test-acquirer-service. Use: docker compose --profile full up
   test-acquirer:
     build: ../services/test-acquirer-service
     ports: ["8090:8080"]
-    profiles: ["full"]   # opt-in: `docker compose --profile full up`
+    profiles: ["full"]
     depends_on:
       localstack: { condition: service_healthy }
 
 volumes:
   pg-data:
-  dynamo-data:
   localstack-data:
 ```
+
+### Notes on DynamoDB Local
+
+DynamoDB Local runs in `-inMemory` mode — no persistent volume. State is lost on container
+restart, which is fine because `dev-down -v` wipes all state and `dev-bootstrap` reprovisions
+everything from scratch.
+
+### Notes on LocalStack 4.x
+
+LocalStack 4.x reports service status as `"available"` (ready to use, lazy init) or `"running"`
+(already initialized). Both mean the service is callable — `"available"` services initialize on
+first API call. The `wait-for-ready` Makefile target waits for SNS to reach either state.
 
 ### Multi-db init for Postgres
 
@@ -108,122 +118,80 @@ done
 
 ### AWS bootstrap script
 
-`infrastructure/scripts/bootstrap-aws.sh` (runs once when LocalStack becomes healthy):
+`infrastructure/scripts/bootstrap-aws.sh` runs on the **host** (not inside a container).
+It targets LocalStack at `localhost:4566` and DynamoDB Local at `localhost:8000` using plain
+`aws --endpoint-url=...` with `--region eu-north-1`. The script is **fully idempotent** —
+re-running it against an already-bootstrapped stack is safe.
 
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
+Resources provisioned:
 
-# SNS topics
-for topic in payment-events checkout-events; do
-  awslocal sns create-topic --name "$topic"
-done
+| Resource | Details |
+|---|---|
+| SNS topics | `payment-events`, `checkout-events` |
+| SQS queues | `webhook-dispatch` + DLQ, `payment-reconciliation` + DLQ (`maxReceiveCount=5`) |
+| SNS→SQS subscription | `payment-events` → `webhook-dispatch` |
+| KMS key | alias `alias/token-service-dev` (envelope encryption for token-service) |
+| DynamoDB: `checkout_sessions` | HASH `session_id`, GSI `merchant-created-index`, TTL `expires_at` |
+| DynamoDB: `tokens` | HASH `token`, TTL `expires_at` |
+| DynamoDB: `data_keys` | HASH `key_id`, TTL `expires_at` (encrypted DEKs for token-service) |
+| DynamoDB: `checkout_idempotency_keys` | HASH `idempotency_key`, TTL `expires_at` |
+| DynamoDB: `payment_idempotency_keys` | HASH `idempotency_key`, TTL `expires_at` |
 
-# SQS queues with DLQs
-create_queue_with_dlq() {
-  local queue="$1"
-  local dlq_url
-  dlq_url=$(awslocal sqs create-queue --queue-name "${queue}-dlq" | jq -r .QueueUrl)
-  local dlq_arn
-  dlq_arn=$(awslocal sqs get-queue-attributes --queue-url "$dlq_url" \
-            --attribute-names QueueArn | jq -r .Attributes.QueueArn)
-  awslocal sqs create-queue --queue-name "$queue" \
-    --attributes "{\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$dlq_arn\\\",\\\"maxReceiveCount\\\":\\\"5\\\"}\"}"
-}
-
-create_queue_with_dlq webhook-dispatch
-create_queue_with_dlq payment-reconciliation
-
-# Subscribe webhook-dispatch to payment-events
-PAY_TOPIC=$(awslocal sns list-topics | jq -r '.Topics[] | select(.TopicArn|endswith(":payment-events")) | .TopicArn')
-WEBHOOK_Q=$(awslocal sqs get-queue-url --queue-name webhook-dispatch | jq -r .QueueUrl)
-WEBHOOK_ARN=$(awslocal sqs get-queue-attributes --queue-url "$WEBHOOK_Q" \
-              --attribute-names QueueArn | jq -r .Attributes.QueueArn)
-awslocal sns subscribe --topic-arn "$PAY_TOPIC" --protocol sqs --notification-endpoint "$WEBHOOK_ARN"
-
-# KMS key for token-service
-awslocal kms create-key --description "token-service envelope encryption (dev)" >/dev/null
-KEY_ID=$(awslocal kms list-keys | jq -r '.Keys[0].KeyId')
-awslocal kms create-alias --alias-name alias/token-service-dev --target-key-id "$KEY_ID"
-
-# DynamoDB tables (against the dynamodb-local container)
-DDB_HOST="http://dynamodb-local:8000"
-DDB_ARGS="--endpoint-url=$DDB_HOST"
-
-awslocal dynamodb $DDB_ARGS create-table \
-  --table-name checkout_sessions \
-  --attribute-definitions AttributeName=session_id,AttributeType=S \
-                          AttributeName=merchant_id,AttributeType=S \
-                          AttributeName=created_at,AttributeType=N \
-  --key-schema AttributeName=session_id,KeyType=HASH \
-  --global-secondary-indexes \
-    "[{\"IndexName\":\"merchant-created-index\",
-       \"KeySchema\":[{\"AttributeName\":\"merchant_id\",\"KeyType\":\"HASH\"},
-                      {\"AttributeName\":\"created_at\",\"KeyType\":\"RANGE\"}],
-       \"Projection\":{\"ProjectionType\":\"ALL\"},
-       \"BillingMode\":\"PAY_PER_REQUEST\"}]" \
-  --billing-mode PAY_PER_REQUEST >/dev/null
-
-awslocal dynamodb $DDB_ARGS update-time-to-live \
-  --table-name checkout_sessions \
-  --time-to-live-specification "Enabled=true, AttributeName=expires_at" >/dev/null
-
-awslocal dynamodb $DDB_ARGS create-table \
-  --table-name tokens \
-  --attribute-definitions AttributeName=token,AttributeType=S \
-  --key-schema AttributeName=token,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST >/dev/null
-
-awslocal dynamodb $DDB_ARGS update-time-to-live \
-  --table-name tokens \
-  --time-to-live-specification "Enabled=true, AttributeName=expires_at" >/dev/null
-
-# Idempotency keys table (used by every service exposing POST endpoints)
-for svc in checkout payment; do
-  awslocal dynamodb $DDB_ARGS create-table \
-    --table-name "${svc}_idempotency_keys" \
-    --attribute-definitions AttributeName=idempotency_key,AttributeType=S \
-    --key-schema AttributeName=idempotency_key,KeyType=HASH \
-    --billing-mode PAY_PER_REQUEST >/dev/null
-
-  awslocal dynamodb $DDB_ARGS update-time-to-live \
-    --table-name "${svc}_idempotency_keys" \
-    --time-to-live-specification "Enabled=true, AttributeName=expires_at" >/dev/null
-done
-
-echo "✓ AWS bootstrap complete"
-```
+All DynamoDB tables use `PAY_PER_REQUEST` billing.
 
 ## Makefile
 
 Top-level `Makefile`:
 
 ```makefile
-.PHONY: dev-up dev-down dev-bootstrap dev-seed dev-logs dev-reset
+.PHONY: dev-up dev-up-full dev-down dev-bootstrap dev-reset dev-logs wait-for-ready build format
+
+COMPOSE := docker compose -f infrastructure/docker-compose.yml
 
 dev-up:
-	cd infrastructure && docker compose up -d
+	$(COMPOSE) up -d
 
 dev-up-full:
-	cd infrastructure && docker compose --profile full up -d
+	$(COMPOSE) --profile full up -d
 
 dev-down:
-	cd infrastructure && docker compose down -v
+	$(COMPOSE) down -v
 
-dev-bootstrap:
-	cd infrastructure && docker compose exec localstack /etc/localstack/init/ready.d/bootstrap.sh
+# Poll until LocalStack SNS/SQS/KMS are available and DynamoDB Local responds.
+# LocalStack 4.x reports "available" (not "running") for enabled services.
+wait-for-ready:
+	@echo "Waiting for LocalStack..."
+	@bash -c '\
+	  for i in $$(seq 1 30); do \
+	    STATUS=$$(curl -fsS http://localhost:4566/_localstack/health 2>/dev/null \
+	      | python3 -c "import sys,json; h=json.load(sys.stdin); print(h[\"services\"].get(\"sns\",\"off\"))" 2>/dev/null); \
+	    if [ "$$STATUS" = "available" ] || [ "$$STATUS" = "running" ]; then \
+	      echo "LocalStack ready (sns: $$STATUS)."; break; \
+	    fi; \
+	    echo "  ...$$((i*2))s (sns: $$STATUS)"; \
+	    if [ $$i -eq 30 ]; then echo "ERROR: LocalStack timed out"; exit 1; fi; \
+	    sleep 2; \
+	  done'
+	@echo "Waiting for DynamoDB Local..."
+	@bash -c '\
+	  for i in $$(seq 1 15); do \
+	    if aws --region eu-north-1 --endpoint-url=http://localhost:8000 dynamodb list-tables --output json >/dev/null 2>&1; then \
+	      echo "DynamoDB Local ready."; break; \
+	    fi; \
+	    echo "  ...$$((i*2))s"; \
+	    if [ $$i -eq 15 ]; then echo "ERROR: DynamoDB Local timed out"; exit 1; fi; \
+	    sleep 2; \
+	  done'
+	@echo "Infrastructure ready."
 
-dev-seed:
-	./mvnw -pl services/merchant-service exec:java \
-		-Dexec.mainClass=com.gateway.merchant.tools.SeedLocalMerchant
+dev-bootstrap: wait-for-ready
+	./infrastructure/scripts/bootstrap-aws.sh
 
-dev-reset: dev-down dev-up
-	@sleep 5
-	$(MAKE) dev-bootstrap
-	$(MAKE) dev-seed
+# dev-seed is added in task 1.3 once merchant-service exists.
+dev-reset: dev-down dev-up dev-bootstrap
 
 dev-logs:
-	cd infrastructure && docker compose logs -f
+	$(COMPOSE) logs -f
 
 build:
 	./mvnw clean verify
@@ -233,7 +201,7 @@ format:
 	cd frontend/checkout-ui && pnpm format
 ```
 
-`dev-seed` creates a single test merchant with a deterministic API key:
+`dev-seed` (added in task 1.3) creates a single test merchant with a deterministic API key:
 ```
 Merchant: mer_local_test
 API key:  sk_test_local_01HQX_thisisafixedkeyforlocaldev0123
@@ -321,20 +289,29 @@ Fixed ports so URLs in config are stable:
 | DynamoDB Local | 8000 |
 | LocalStack | 4566 |
 
+**Port conflicts:** These are standard ports. If you have other projects using them, stop those
+containers before `make dev-up` — `docker stop <name>` (not `docker rm`) preserves the other
+project's data. Resume with `docker start <name>` when switching back.
+
 ## First-time run
 
 ```bash
 git clone <repo>
 cd payment-gateway
 
-# Start infra
+# Start infra (downloads images on first run)
 make dev-up
 
-# Wait ~10s for LocalStack to be healthy, then bootstrap
+# Bootstrap SNS/SQS/KMS/DynamoDB (wait-for-ready is automatic)
 make dev-bootstrap
 
-# Seed a test merchant
-make dev-seed
+# Seed a test merchant (available after task 1.3)
+# make dev-seed
+
+# Install shared modules to local .m2 repo — required before running any service
+# from the CLI. Maven resolves sibling-module JARs from .m2, not from target/.
+# Re-run this whenever shared/* changes.
+./mvnw install -DskipTests
 
 # Run services from IntelliJ — open Spring Boot run configs, start each
 # Or run the full stack from CLI:
@@ -349,7 +326,7 @@ make dev-seed
 cd frontend/checkout-ui && pnpm install && pnpm dev
 ```
 
-Smoke test:
+Smoke test (requires task 1.3+ to be complete):
 ```bash
 # Create a session
 curl -X POST http://localhost:8100/v1/checkout-sessions \
@@ -367,6 +344,27 @@ curl -X POST http://localhost:8100/v1/checkout-sessions \
 # Response includes `url` — open that in a browser to see the checkout page
 ```
 
+## Verify bootstrap
+
+After `make dev-bootstrap`, confirm all resources exist:
+
+```bash
+# 2 SNS topics
+aws --region eu-north-1 --endpoint-url=http://localhost:4566 sns list-topics
+
+# 4 SQS queues (webhook-dispatch, webhook-dispatch-dlq, payment-reconciliation, payment-reconciliation-dlq)
+aws --region eu-north-1 --endpoint-url=http://localhost:4566 sqs list-queues
+
+# 5 DynamoDB tables
+aws --region eu-north-1 --endpoint-url=http://localhost:8000 dynamodb list-tables
+
+# KMS alias
+aws --region eu-north-1 --endpoint-url=http://localhost:4566 kms list-aliases
+
+# 3 Postgres databases
+PGPASSWORD=gateway psql -h localhost -U gateway -l
+```
+
 ## Testcontainers note
 
 In `shared-testing`, base classes spin up Postgres + LocalStack + DynamoDB containers and
@@ -382,11 +380,12 @@ abstract class AbstractIntegrationTest {
 
     @Container
     static LocalStackContainer localstack = new LocalStackContainer(
-        DockerImageName.parse("localstack/localstack:3.8")
+        DockerImageName.parse("localstack/localstack:4.2")
     ).withServices(SNS, SQS, KMS);
 
     @Container
     static GenericContainer<?> dynamo = new GenericContainer<>("amazon/dynamodb-local:2.5.2")
+        .withCommand("-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory")
         .withExposedPorts(8000);
 
     @DynamicPropertySource

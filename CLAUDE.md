@@ -95,7 +95,12 @@ make dev-down                        # tear down + remove volumes
 # Build & test
 ./mvnw clean verify                  # build everything, run unit + integration tests
 ./mvnw -pl services/checkout-service verify   # one service only
-./mvnw -pl services/checkout-service spring-boot:run   # run one service
+
+# Run a service
+# Multi-module projects require shared modules to be installed to local .m2 first.
+# Run once after a fresh clone, and again whenever shared/* changes.
+./mvnw install -DskipTests
+./mvnw -pl services/merchant-service spring-boot:run   # then run any service by name
 
 # Frontend
 cd frontend/checkout-ui && pnpm dev  # next dev server on :3000
@@ -147,6 +152,28 @@ com.gateway.<service>
 - Integration tests use `@SpringBootTest` + Testcontainers in `src/test/java/.../it/`
 - Every controller has a `*ControllerTest` (web slice) and a `*IT` (full slice)
 - No test depends on another test's state
+- Every `*IT` class must declare `@SpringBootTest(classes = <ServiceApplication>.class, webEnvironment = RANDOM_PORT)` explicitly — do NOT rely on Spring Boot's upward package scan. The abstract bases in `shared-testing` (`AbstractPostgresIT`, `AbstractDynamoIT`, `AbstractLocalStackIT`) provide container infrastructure only; they do not carry `@SpringBootTest`.
+
+### Spring Boot Maven plugin — every service
+
+Every service pom must configure `spring-boot-maven-plugin` with `<classifier>exec</classifier>`:
+
+```xml
+<plugin>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-maven-plugin</artifactId>
+  <configuration>
+    <classifier>exec</classifier>
+    ...
+  </configuration>
+</plugin>
+```
+
+Without this, `repackage` replaces the main artifact with a fat JAR where classes are nested under
+`BOOT-INF/classes/`. Failsafe resolves the artifact JAR (not `target/classes`) for its test
+classpath, so the standard JVM classloader cannot find the `@SpringBootApplication` class and the
+Spring context fails to boot. `classifier=exec` keeps the original thin JAR as the main artifact;
+the fat JAR is produced as `*-exec.jar` and used for deployment.
 
 ### Git
 

@@ -17,16 +17,65 @@
   <description>Aggregator for independently deployable services</description>
 
   <modules>
-    <!-- Populated as services are built (Phase 1+):
-         checkout-service, token-service, payment-service,
-         webhook-service, merchant-service, test-acquirer-service -->
+    <module>merchant-service</module>
+    <!-- checkout-service, token-service, payment-service,
+         webhook-service, test-acquirer-service added in later phases -->
   </modules>
 
-  <!--
-    ADR-0002: When services are added as modules, activate the maven-enforcer-plugin
-    bannedDependencies rule here to prevent cross-service compile dependencies
-    (ban com.gateway.<service>:* from depending on another com.gateway.<service>:*).
-    Cross-service communication must go through HTTP or SNS/SQS events only.
-  -->
+  <build>
+    <plugins>
+      <!--
+        ADR-0002: Prevent cross-service compile dependencies.
+        No com.gateway:*-service artifact may depend on another com.gateway:*-service.
+        Cross-service communication must go over HTTP or SNS/SQS events only.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>ban-cross-service-deps</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>com.gateway:checkout-service</exclude>
+                    <exclude>com.gateway:token-service</exclude>
+                    <exclude>com.gateway:payment-service</exclude>
+                    <exclude>com.gateway:webhook-service</exclude>
+                    <exclude>com.gateway:merchant-service</exclude>
+                    <exclude>com.gateway:test-acquirer-service</exclude>
+                  </excludes>
+                  <message>Cross-service compile dependencies are forbidden (ADR-0002). Use HTTP or SNS/SQS events.</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Run *IT tests via Failsafe on every service verify -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

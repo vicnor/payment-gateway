@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: merchant-service
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+server:
+  port: 8101
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
