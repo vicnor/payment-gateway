@@ -1,9 +1,9 @@
 package com.gateway.shared.events;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class BaseEventTest {
 
@@ -40,7 +40,7 @@ class BaseEventTest {
     void eachCallGeneratesUniqueId() {
         BaseEvent a = BaseEvent.now(EventType.PAYMENT_CAPTURED);
         BaseEvent b = BaseEvent.now(EventType.PAYMENT_CAPTURED);
-        assertTrue(!a.id().equals(b.id()), "Each call should produce a unique ID");
+        assertFalse(a.id().equals(b.id()), "Each call should produce a unique ID");
     }
 
     private void assertEquals26UlidChars(String ulid) {

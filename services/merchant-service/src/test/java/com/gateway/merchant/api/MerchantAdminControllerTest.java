@@ -31,12 +31,9 @@ class MerchantAdminControllerTest {
 
     @Autowired MockMvc mockMvc;
 
-    @MockitoBean
-    MerchantService merchantService;
-    @MockitoBean
-    ApiKeyService apiKeyService;
-    @MockitoBean
-    WebhookSecretService webhookSecretService;
+    @MockitoBean MerchantService merchantService;
+    @MockitoBean ApiKeyService apiKeyService;
+    @MockitoBean WebhookSecretService webhookSecretService;
 
     @Test
     void createMerchantWithBlankNameReturns400() throws Exception {

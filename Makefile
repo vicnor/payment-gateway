@@ -1,4 +1,4 @@
-.PHONY: dev-up dev-up-full dev-down dev-bootstrap dev-reset dev-logs wait-for-ready build format
+.PHONY: dev-up dev-up-full dev-down dev-bootstrap dev-seed dev-reset dev-logs wait-for-ready build format
 
 COMPOSE := docker compose -f infrastructure/docker-compose.yml
 
@@ -41,7 +41,9 @@ wait-for-ready:
 dev-bootstrap: wait-for-ready
 	./infrastructure/scripts/bootstrap-aws.sh
 
-# dev-seed is added in task 1.3 once merchant-service exists.
+dev-seed: ## Seed local merchant + API key into merchant-service DB
+	./mvnw -pl services/merchant-service spring-boot:run -Dspring-boot.run.profiles=local,seed
+
 dev-reset: dev-down dev-up dev-bootstrap
 
 dev-logs:

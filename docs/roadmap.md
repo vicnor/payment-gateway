@@ -94,7 +94,7 @@ The endpoints we use to manually onboard merchants in v1.
 
 **Context:** `docs/architecture/data-model.md` (Merchant section)
 
-### 1.3 Internal validation endpoints
+### ✅ 1.3 Internal validation endpoints
 
 Used by every other service to validate API keys and fetch merchant config.
 
