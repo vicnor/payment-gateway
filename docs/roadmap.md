@@ -109,7 +109,7 @@ Used by every other service to validate API keys and fetch merchant config.
   `http://host.docker.internal:9999`
 - `make dev-seed` works after a fresh `make dev-up && make dev-bootstrap`
 
-### 1.4 shared-security: API key filter
+### ✅ 1.4 shared-security: API key filter
 
 The Spring filter that every other service uses to validate inbound merchant API requests.
 

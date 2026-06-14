@@ -23,7 +23,8 @@ public class MerchantInternalController {
 
     @GetMapping("/api-keys/{prefix}")
     public ApiKeyCandidatesResponse getApiKeyCandidates(@PathVariable String prefix) {
-        return ApiKeyCandidateMapper.toResponse(merchantInternalService.findCandidatesByPrefix(prefix));
+        return ApiKeyCandidateMapper.toResponse(
+                merchantInternalService.findCandidatesByPrefix(prefix));
     }
 
     @GetMapping("/merchants/{id}")

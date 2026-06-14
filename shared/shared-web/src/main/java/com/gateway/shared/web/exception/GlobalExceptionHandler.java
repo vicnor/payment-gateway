@@ -42,7 +42,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorEnvelope> handleConstraintViolation(ConstraintViolationException ex) {
+    public ResponseEntity<ErrorEnvelope> handleConstraintViolation(
+            ConstraintViolationException ex) {
         var first = ex.getConstraintViolations().stream().findFirst();
         String param = first.map(v -> v.getPropertyPath().toString()).orElse(null);
         String message = first.map(ConstraintViolation::getMessage).orElse("Validation failed.");

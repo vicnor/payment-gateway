@@ -22,7 +22,8 @@ class LocalDevSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(LocalDevSeeder.class);
 
     private static final String MERCHANT_ID = "mer_local_test";
-    private static final String SEED_API_KEY = "sk_test_local_01HQX_thisisafixedkeyforlocaldev0123";
+    private static final String SEED_API_KEY =
+            "sk_test_01JTESTAAAAAAA0000000000AA_localdevfixedkey000000000000000000000000000";
     private static final String CALLBACK_URL = "http://host.docker.internal:9999";
     private static final String RETURN_URL_PATTERN = "http://host.docker.internal:9999/return";
     private static final String CANCEL_URL_PATTERN = "http://host.docker.internal:9999/cancel";

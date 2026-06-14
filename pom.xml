@@ -32,6 +32,7 @@
     <!-- Library versions -->
     <ulid-creator.version>5.2.3</ulid-creator.version>
     <bouncycastle.version>1.80</bouncycastle.version>
+    <wiremock.version>3.9.2</wiremock.version>
 
     <!-- Plugin versions -->
     <spotless.version>3.6.0</spotless.version>
@@ -85,6 +86,11 @@
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
         <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.wiremock</groupId>
+        <artifactId>wiremock-standalone</artifactId>
+        <version>${wiremock.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
