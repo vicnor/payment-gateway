@@ -55,9 +55,9 @@ class HttpMerchantServiceClientTest {
         List<ApiKeyCandidate> candidates = client.lookupCandidates(prefix);
 
         assertThat(candidates).hasSize(1);
-        assertThat(candidates.get(0).merchantId()).isEqualTo("mer_abc123");
-        assertThat(candidates.get(0).mode()).isEqualTo(KeyMode.TEST);
-        assertThat(candidates.get(0).keyPrefix()).isEqualTo("sk_test_01JTESTA");
+        assertThat(candidates.getFirst().merchantId()).isEqualTo("mer_abc123");
+        assertThat(candidates.getFirst().mode()).isEqualTo(KeyMode.TEST);
+        assertThat(candidates.getFirst().keyPrefix()).isEqualTo("sk_test_01JTESTA");
     }
 
     @Test
