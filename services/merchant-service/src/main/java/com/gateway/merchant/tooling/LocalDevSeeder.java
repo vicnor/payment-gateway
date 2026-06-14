@@ -13,7 +13,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 @Profile("seed")
@@ -32,52 +33,64 @@ class LocalDevSeeder implements CommandLineRunner {
     private final ApiKeyRepository apiKeyRepository;
     private final Argon2Hasher argon2Hasher;
     private final ConfigurableApplicationContext applicationContext;
+    private final TransactionTemplate transactionTemplate;
 
     LocalDevSeeder(
             MerchantRepository merchantRepository,
             ApiKeyRepository apiKeyRepository,
             Argon2Hasher argon2Hasher,
-            ConfigurableApplicationContext applicationContext) {
+            ConfigurableApplicationContext applicationContext,
+            PlatformTransactionManager transactionManager) {
         this.merchantRepository = merchantRepository;
         this.apiKeyRepository = apiKeyRepository;
         this.argon2Hasher = argon2Hasher;
         this.applicationContext = applicationContext;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Override
-    @Transactional
     public void run(String... args) {
-        if (merchantRepository.existsById(MERCHANT_ID)) {
-            log.info("Seed merchant '{}' already present, skipping.", MERCHANT_ID);
-            SpringApplication.exit(applicationContext, () -> 0);
-            return;
-        }
-
-        Merchant merchant =
-                new Merchant(
-                        MERCHANT_ID,
-                        "Local Test Merchant",
-                        CALLBACK_URL,
-                        RETURN_URL_PATTERN,
-                        CANCEL_URL_PATTERN,
-                        null,
-                        MerchantMode.TEST);
-        merchantRepository.save(merchant);
-
-        String keyHash = argon2Hasher.hash(SEED_API_KEY);
-        ApiKey apiKey =
-                new ApiKey(
-                        MERCHANT_ID,
-                        SEED_API_KEY.substring(0, 16),
-                        keyHash,
-                        MerchantMode.TEST,
-                        "Local dev seed");
-        apiKeyRepository.save(apiKey);
-
-        log.info(
-                "Seeded merchant '{}' with API key prefix '{}'.",
-                MERCHANT_ID,
-                SEED_API_KEY.substring(0, 16));
+        // The DB work runs in its own transaction that commits before we exit. Exiting
+        // (which closes the context and the datasource) must happen *after* the commit —
+        // calling SpringApplication.exit inside the transaction closes the connection
+        // before commit and fails with "This connection has been closed".
+        seed();
         SpringApplication.exit(applicationContext, () -> 0);
+    }
+
+    private void seed() {
+        transactionTemplate.executeWithoutResult(
+                status -> {
+                    if (merchantRepository.existsById(MERCHANT_ID)) {
+                        log.info("Seed merchant '{}' already present, skipping.", MERCHANT_ID);
+                        return;
+                    }
+
+                    Merchant merchant =
+                            new Merchant(
+                                    MERCHANT_ID,
+                                    "Local Test Merchant",
+                                    CALLBACK_URL,
+                                    RETURN_URL_PATTERN,
+                                    CANCEL_URL_PATTERN,
+                                    null,
+                                    MerchantMode.TEST);
+                    merchantRepository.save(merchant);
+
+                    String keyHash = argon2Hasher.hash(SEED_API_KEY);
+                    ApiKey apiKey =
+                            new ApiKey(
+                                    MERCHANT_ID,
+                                    SEED_API_KEY.substring(0, 16),
+                                    keyHash,
+                                    MerchantMode.TEST,
+                                    "Local dev seed");
+                    apiKeyRepository.save(apiKey);
+
+                    log.info(
+                            "Seeded merchant '{}' with API key prefix '{}'.",
+                            MERCHANT_ID,
+                            SEED_API_KEY.substring(0, 16));
+                });
     }
 }
