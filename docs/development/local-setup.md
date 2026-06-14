@@ -204,7 +204,7 @@ format:
 `dev-seed` (added in task 1.3) creates a single test merchant with a deterministic API key:
 ```
 Merchant: mer_local_test
-API key:  sk_test_local_01HQX_thisisafixedkeyforlocaldev0123
+API key:  sk_test_01JTESTAAAAAAA0000000000AA_localdevfixedkey000000000000000000000000000
 Webhook:  http://host.docker.internal:9999  (any local listener, e.g. webhook.site)
 ```
 
@@ -330,7 +330,7 @@ Smoke test (requires task 1.3+ to be complete):
 ```bash
 # Create a session
 curl -X POST http://localhost:8100/v1/checkout-sessions \
-  -H "Authorization: Bearer sk_test_local_01HQX_thisisafixedkeyforlocaldev0123" \
+  -H "Authorization: Bearer sk_test_01JTESTAAAAAAA0000000000AA_localdevfixedkey000000000000000000000000000" \
   -H "Idempotency-Key: $(uuidgen)" \
   -H "Content-Type: application/json" \
   -d '{
