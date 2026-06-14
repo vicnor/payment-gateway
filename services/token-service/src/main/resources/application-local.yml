@@ -1,0 +1,11 @@
+gateway:
+  aws:
+    region: eu-north-1
+    credentials:
+      access-key: test
+      secret-key: test
+    dynamodb:
+      endpoint: http://localhost:8000
+    kms:
+      endpoint: http://localhost:4566
+      key-id: alias/token-service-dev

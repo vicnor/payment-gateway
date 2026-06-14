@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.gateway</groupId>
+    <artifactId>payment-gateway-services</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>token-service</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Payment Gateway — Token Service</name>
+  <description>PCI-scoped card tokenization. Accepts raw card data, returns opaque tokens backed by envelope encryption (KMS + AES-256-GCM). Detokenizes for payment-service only.</description>
+
+  <dependencies>
+    <!-- shared-web: brings spring-boot-starter-web, validation, RequestIdFilter, GlobalExceptionHandler -->
+    <dependency>
+      <groupId>com.gateway</groupId>
+      <artifactId>shared-web</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <!-- AWS SDK v2: DynamoDB (low-level + enhanced) and KMS -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>dynamodb-enhanced</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>kms</artifactId>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>com.gateway</groupId>
+      <artifactId>shared-testing</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <!--
+            classifier=exec keeps the original thin JAR as the main artifact so Failsafe's
+            test classpath can load classes normally. The executable fat JAR is produced as
+            *-exec.jar and used for deployment / spring-boot:run.
+          -->
+          <classifier>exec</classifier>
+          <profiles>
+            <profile>local</profile>
+          </profiles>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

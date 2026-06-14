@@ -129,7 +129,7 @@ The Spring filter that every other service uses to validate inbound merchant API
 
 ## Phase 2 — token-service (PCI scope)
 
-### 2.1 token-service scaffold
+### ✅ 2.1 token-service scaffold
 
 Standalone service. Treated as the PCI-scoped service for the rest of the project.
 

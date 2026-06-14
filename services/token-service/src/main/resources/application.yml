@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: token-service
+
+server:
+  port: 8103
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
