@@ -111,10 +111,10 @@ create_dynamo_table tokens \
   --key-schema AttributeName=token,KeyType=HASH
 enable_ttl tokens expires_at
 
-# data_keys: HASH key_id (encrypted DEKs for token-service envelope encryption)
+# data_keys: HASH data_key_id (encrypted DEKs for token-service envelope encryption)
 create_dynamo_table data_keys \
-  --attribute-definitions AttributeName=key_id,AttributeType=S \
-  --key-schema AttributeName=key_id,KeyType=HASH
+  --attribute-definitions AttributeName=data_key_id,AttributeType=S \
+  --key-schema AttributeName=data_key_id,KeyType=HASH
 enable_ttl data_keys expires_at
 
 # idempotency key tables (one per service that exposes POST endpoints)
