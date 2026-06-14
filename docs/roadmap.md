@@ -454,7 +454,9 @@ Same pattern as payment-service.
 
 When the above is done, the natural next pieces are:
 
-- **3DS2 integration** (PSD2 compliance) — the biggest gap before real acquiring
+- **3DS2 integration** (PSD2 compliance) — the biggest gap before real acquiring. This is the
+  first true async wait-state in the system and the trigger to evaluate a workflow orchestrator
+  (Step Functions / Temporal / Conductor) — see `docs/adr/0006-workflow-orchestration-deferred.md`.
 - **Real acquirer integration** (probably Nets or Adyen given Danish geography)
 - **Merchant dashboard** + self-service onboarding
 - **Refunds API**

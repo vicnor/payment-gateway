@@ -24,6 +24,7 @@ Each ADR is short — 1–2 pages. Sections:
 | [0003](0003-service-boundaries.md) | Six services, drawn now | Accepted |
 | [0004](0004-tokenization-strategy.md) | Single-use tokens with vault extensibility | Accepted |
 | [0005](0005-three-api-surfaces.md) | Three API surfaces, separately versioned | Accepted |
+| [0006](0006-workflow-orchestration-deferred.md) | Workflow orchestration deferred to 3DS | Accepted |
 
 ## Adding a new ADR
 
