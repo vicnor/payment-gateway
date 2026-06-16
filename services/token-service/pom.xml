@@ -43,6 +43,12 @@
       <artifactId>kms</artifactId>
     </dependency>
 
+    <!-- ULID generation for tok_ / dk_ IDs -->
+    <dependency>
+      <groupId>com.github.f4b6a3</groupId>
+      <artifactId>ulid-creator</artifactId>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>com.gateway</groupId>

@@ -11,9 +11,6 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
  * <p>Stores per-token envelope encryption keys (DEKs) after KMS-wrapping. The plain DEK is never
  * persisted — only the ciphertext produced by {@code KMS.encrypt(CMK, plainDek)}.
  *
- * <p>Scaffold: carries only the fields needed to prove the enhanced-client round-trip. The {@code
- * encrypted_dek} and {@code kms_key_id} fields used in production are added in task 2.2.
- *
  * <p>Partition key name is {@code data_key_id} — the canonical name from {@code
  * docs/architecture/data-model.md}. This matches the DynamoDB table created by {@code
  * infrastructure/scripts/bootstrap-aws.sh}.
@@ -26,6 +23,8 @@ public class DataKeyItem {
             TableSchema.fromBean(DataKeyItem.class);
 
     private String dataKeyId;
+    private String encryptedDek;
+    private String kmsKeyId;
     private Long createdAt;
 
     @DynamoDbPartitionKey
@@ -36,6 +35,24 @@ public class DataKeyItem {
 
     public void setDataKeyId(String dataKeyId) {
         this.dataKeyId = dataKeyId;
+    }
+
+    @DynamoDbAttribute("encrypted_dek")
+    public String getEncryptedDek() {
+        return encryptedDek;
+    }
+
+    public void setEncryptedDek(String encryptedDek) {
+        this.encryptedDek = encryptedDek;
+    }
+
+    @DynamoDbAttribute("kms_key_id")
+    public String getKmsKeyId() {
+        return kmsKeyId;
+    }
+
+    public void setKmsKeyId(String kmsKeyId) {
+        this.kmsKeyId = kmsKeyId;
     }
 
     @DynamoDbAttribute("created_at")

@@ -140,7 +140,7 @@ Standalone service. Treated as the PCI-scoped service for the rest of the projec
 - KMS client wired against LocalStack endpoint in `local` profile
 - `/actuator/health` returns 200
 
-### 2.2 Tokenization endpoint
+### ✅ 2.2 Tokenization endpoint
 
 The browser-facing endpoint.
 
