@@ -57,8 +57,17 @@ class TokenServiceIT extends AbstractDynamoKmsIT {
 
     @BeforeAll
     void createTables() {
-        enhancedClient.table("tokens", TokenItem.TABLE_SCHEMA).createTable();
-        enhancedClient.table("data_keys", DataKeyItem.TABLE_SCHEMA).createTable();
+        createTableIfAbsent("tokens", TokenItem.TABLE_SCHEMA);
+        createTableIfAbsent("data_keys", DataKeyItem.TABLE_SCHEMA);
+    }
+
+    private <T> void createTableIfAbsent(
+            String name, software.amazon.awssdk.enhanced.dynamodb.TableSchema<T> schema) {
+        try {
+            enhancedClient.table(name, schema).createTable();
+        } catch (software.amazon.awssdk.services.dynamodb.model.ResourceInUseException ignored) {
+            // Table already exists from a concurrently running IT — shared DynamoDB-Local container
+        }
     }
 
     @Test

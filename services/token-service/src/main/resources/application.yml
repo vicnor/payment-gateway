@@ -1,6 +1,8 @@
 spring:
   application:
     name: token-service
+  jackson:
+    property-naming-strategy: SNAKE_CASE
 
 server:
   port: 8103
@@ -10,3 +12,12 @@ management:
     web:
       exposure:
         include: health
+
+gateway:
+  token:
+    ttl-seconds: 1800
+    cors:
+      allowed-origins:
+        - http://localhost:3000
+    session-secret:
+      enabled: false
