@@ -113,13 +113,13 @@ public class CardCryptoService {
     }
 
     /**
-     * AES-256-GCM decrypt. Package-private; used in task 2.3 (detokenize) and unit tests.
+     * AES-256-GCM decrypt. Used by detokenize (task 2.3) and unit tests.
      *
      * @param key 32-byte AES key
      * @param ciphertext base64(iv[12] || ciphertext+tag)
      * @return decrypted plaintext
      */
-    static String aesGcmDecrypt(byte[] key, String ciphertext) {
+    public static String aesGcmDecrypt(byte[] key, String ciphertext) {
         try {
             byte[] combined = Base64.getDecoder().decode(ciphertext);
             byte[] iv = Arrays.copyOfRange(combined, 0, GCM_IV_LENGTH_BYTES);

@@ -159,7 +159,7 @@ holder_name }`
 - CORS allows requests from `http://localhost:3000` (local Next.js) and the prod checkout
   domain only
 
-### 2.3 Detokenization endpoint
+### ✅ 2.3 Detokenization endpoint
 
 Internal, called by payment-service.
 

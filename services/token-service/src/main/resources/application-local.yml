@@ -9,3 +9,8 @@ gateway:
     kms:
       endpoint: http://localhost:4566
       key-id: alias/token-service-dev
+  token:
+    internal:
+      callers:
+        - id: payment-service
+          secret: dev-secret-payment

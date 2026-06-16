@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.gateway.token.config.CorsConfig;
 import com.gateway.token.config.TokenProperties;
 import com.gateway.token.config.TokenProperties.CorsProperties;
+import com.gateway.token.config.TokenProperties.InternalProperties;
 import com.gateway.token.config.TokenProperties.SessionSecretProperties;
 import com.gateway.token.domain.TokenResult;
 import com.gateway.token.domain.TokenizationService;
@@ -44,7 +45,8 @@ class TokenControllerTest {
             return new TokenProperties(
                     1800,
                     new CorsProperties(List.of("http://localhost:3000")),
-                    new SessionSecretProperties(false));
+                    new SessionSecretProperties(false),
+                    new InternalProperties(List.of()));
         }
     }
 

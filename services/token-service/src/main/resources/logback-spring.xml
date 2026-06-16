@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <!--
+      Audit appender — writes one structured JSON line per detokenize call.
+      In production this appender is replaced with a CloudWatch appender pointing at a
+      dedicated log group (separate from the application log group) for PCI audit trail.
+    -->
+    <appender name="AUDIT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ} AUDIT %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+      Dedicated audit logger. additivity=false ensures audit events do not propagate to the
+      root logger (and therefore do not go through any PAN-scanning appenders in tests).
+    -->
+    <logger name="com.gateway.token.audit" level="INFO" additivity="false">
+        <appender-ref ref="AUDIT"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
