@@ -21,3 +21,7 @@ gateway:
         - http://localhost:3000
     session-secret:
       enabled: false
+    internal:
+      callers:
+        - id: payment-service
+          secret: "${PAYMENT_SERVICE_INTERNAL_SECRET}"
