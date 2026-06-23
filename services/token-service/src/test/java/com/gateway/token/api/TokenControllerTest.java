@@ -12,15 +12,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gateway.token.config.CorsConfig;
+import com.gateway.token.config.RateLimitFilter;
+import com.gateway.token.config.SecurityHeadersFilter;
 import com.gateway.token.config.TokenProperties;
 import com.gateway.token.config.TokenProperties.CorsProperties;
 import com.gateway.token.config.TokenProperties.InternalProperties;
+import com.gateway.token.config.TokenProperties.RateLimitProperties;
 import com.gateway.token.config.TokenProperties.SessionSecretProperties;
 import com.gateway.token.domain.TokenResult;
 import com.gateway.token.domain.TokenizationService;
+import com.gateway.token.persistence.RateLimitStore;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -34,8 +41,11 @@ import org.springframework.test.web.servlet.MockMvc;
 class TokenControllerTest {
 
     /**
-     * Provides config beans required by {@link CorsConfig} which is picked up as a
-     * WebMvcConfigurer.
+     * Provides config beans required by {@link CorsConfig} (WebMvcConfigurer) and the hardening
+     * filters ({@link SecurityHeadersFilter}, {@link RateLimitFilter}).
+     *
+     * <p>{@link RateLimitStore} is supplied as a {@link MockitoBean} on the test class and injected
+     * here so the filter can be wired without a real DynamoDB client.
      */
     @TestConfiguration
     static class TestConfig {
@@ -46,13 +56,33 @@ class TokenControllerTest {
                     1800,
                     new CorsProperties(List.of("http://localhost:3000")),
                     new SessionSecretProperties(false),
+                    new RateLimitProperties(100, 1800),
                     new InternalProperties(List.of()));
+        }
+
+        @Bean
+        SecurityHeadersFilter securityHeadersFilter() {
+            return new SecurityHeadersFilter();
+        }
+
+        @Bean
+        RateLimitFilter rateLimitFilter(
+                RateLimitStore rateLimitStore,
+                TokenProperties tokenProperties,
+                ObjectMapper objectMapper) {
+            return new RateLimitFilter(rateLimitStore, tokenProperties, objectMapper);
         }
     }
 
     @Autowired MockMvc mockMvc;
 
     @MockitoBean TokenizationService tokenizationService;
+    @MockitoBean RateLimitStore rateLimitStore;
+
+    @BeforeEach
+    void allowRateLimit() {
+        when(rateLimitStore.tryAcquire(ArgumentMatchers.anyString())).thenReturn(true);
+    }
 
     // --- happy path ---
 
@@ -234,5 +264,104 @@ class TokenControllerTest {
                                         """))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("X-Request-Id"));
+    }
+
+    // --- security headers ---
+
+    @Test
+    void securityHeadersPresentOnSuccessResponse() throws Exception {
+        when(tokenizationService.tokenize(any(), any()))
+                .thenReturn(
+                        new TokenResult(
+                                "tok_01ABCDEFGHIJKLMNOPQRSTUVWX", "visa", "4242", 12, 2027));
+
+        mockMvc.perform(
+                        post("/checkout/cs_test/tokens")
+                                .contentType(APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "card_number": "4242424242424242",
+                                          "exp_month":   12,
+                                          "exp_year":    2027,
+                                          "cvv":         "123",
+                                          "holder_name": "Test"
+                                        }
+                                        """))
+                .andExpect(status().isCreated())
+                .andExpect(
+                        header().string("Content-Security-Policy", SecurityHeadersFilter.CSP_VALUE))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    @Test
+    void securityHeadersPresentOnValidationError() throws Exception {
+        mockMvc.perform(
+                        post("/checkout/cs_test/tokens")
+                                .contentType(APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {"exp_month":12,"exp_year":2027,"cvv":"123","holder_name":"Test"}
+                                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        header().string("Content-Security-Policy", SecurityHeadersFilter.CSP_VALUE))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    @Test
+    void securityHeadersPresentOnRateLimitResponse() throws Exception {
+        when(rateLimitStore.tryAcquire(any())).thenReturn(false);
+
+        mockMvc.perform(
+                        post("/checkout/cs_test_rl/tokens")
+                                .contentType(APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {
+                                          "card_number": "4242424242424242",
+                                          "exp_month":   12,
+                                          "exp_year":    2027,
+                                          "cvv":         "123",
+                                          "holder_name": "Test"
+                                        }
+                                        """))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(
+                        header().string("Content-Security-Policy", SecurityHeadersFilter.CSP_VALUE))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
+    // --- CORS ---
+
+    @Test
+    void corsPreflightFromAllowedOriginReturnsAccessControlHeaders() throws Exception {
+        mockMvc.perform(
+                        org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
+                                        "/checkout/cs_cors/tokens")
+                                .header("Origin", "http://localhost:3000")
+                                .header("Access-Control-Request-Method", "POST")
+                                .header("Access-Control-Request-Headers", "Content-Type"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"))
+                .andExpect(header().string("Access-Control-Allow-Methods", containsString("POST")))
+                .andExpect(header().string("Access-Control-Max-Age", "3600"));
+    }
+
+    @Test
+    void corsPreflightFromDisallowedOriginIsRejected() throws Exception {
+        mockMvc.perform(
+                        org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options(
+                                        "/checkout/cs_cors/tokens")
+                                .header("Origin", "https://evil.example.com")
+                                .header("Access-Control-Request-Method", "POST")
+                                .header("Access-Control-Request-Headers", "Content-Type"))
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
     }
 }

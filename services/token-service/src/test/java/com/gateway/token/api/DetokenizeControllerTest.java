@@ -14,6 +14,7 @@ import com.gateway.token.config.InternalCallerConfig;
 import com.gateway.token.config.TokenProperties;
 import com.gateway.token.config.TokenProperties.CorsProperties;
 import com.gateway.token.config.TokenProperties.InternalProperties;
+import com.gateway.token.config.TokenProperties.RateLimitProperties;
 import com.gateway.token.config.TokenProperties.SessionSecretProperties;
 import com.gateway.token.domain.DetokenizationService;
 import com.gateway.token.domain.DetokenizeResult;
@@ -44,6 +45,7 @@ class DetokenizeControllerTest {
                     1800,
                     new CorsProperties(List.of("http://localhost:3000")),
                     new SessionSecretProperties(false),
+                    new RateLimitProperties(100, 1800),
                     new InternalProperties(List.of(new CallerConfig(CALLER_ID, SECRET))));
         }
     }

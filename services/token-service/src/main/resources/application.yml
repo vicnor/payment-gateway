@@ -21,6 +21,9 @@ gateway:
         - http://localhost:3000
     session-secret:
       enabled: false
+    rate-limit:
+      max-attempts: 100
+      window-seconds: 1800
     internal:
       callers:
         - id: payment-service

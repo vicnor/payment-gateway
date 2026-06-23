@@ -117,6 +117,12 @@ create_dynamo_table data_keys \
   --key-schema AttributeName=data_key_id,KeyType=HASH
 enable_ttl data_keys expires_at
 
+# token_rate_limits: per-session attempt counter for BIN-scraping prevention (task 2.4)
+create_dynamo_table token_rate_limits \
+  --attribute-definitions AttributeName=session_id,AttributeType=S \
+  --key-schema AttributeName=session_id,KeyType=HASH
+enable_ttl token_rate_limits expires_at
+
 # idempotency key tables (one per service that exposes POST endpoints)
 for svc in checkout payment; do
   create_dynamo_table "${svc}_idempotency_keys" \
