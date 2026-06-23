@@ -172,7 +172,7 @@ Internal, called by payment-service.
 - Audit log entry per detokenize call (token id + caller service id + timestamp), in a
   separate log appender that goes to its own CloudWatch log group in prod
 
-### 2.4 CORS, rate limiting, hardening
+### ✅ 2.4 CORS, rate limiting, hardening
 
 Token endpoint is exposed to the internet. Treat it as such.
 

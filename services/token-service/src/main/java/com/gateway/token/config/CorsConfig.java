@@ -5,12 +5,13 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Basic CORS configuration for the browser-facing checkout endpoints.
+ * CORS configuration for the browser-facing checkout endpoints.
  *
  * <p>Restricts {@code /checkout/**} to the configured allowed origins (localhost:3000 for local
- * development; add the production checkout domain via the {@code
- * gateway.token.cors.allowed-origins} property). Full hardening — preflight caching, CSP, no-cache,
- * X-Frame-Options — is task 2.4.
+ * development; production checkout domain via {@code application-prod.yml} or the {@code
+ * gateway.token.cors.allowed-origins} property). Only {@code Content-Type} is permitted as a
+ * non-simple request header (the browser sends it for JSON POSTs), and credentials are never
+ * included. Preflight responses are cached for 1 hour to reduce OPTIONS chatter.
  */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
@@ -27,6 +28,8 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/checkout/**")
                 .allowedOrigins(origins)
                 .allowedMethods("POST", "OPTIONS")
-                .allowCredentials(false);
+                .allowedHeaders("Content-Type")
+                .allowCredentials(false)
+                .maxAge(3600);
     }
 }

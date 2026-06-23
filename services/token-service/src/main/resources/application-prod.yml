@@ -1,0 +1,5 @@
+gateway:
+  token:
+    cors:
+      allowed-origins:
+        - https://checkout.yourgateway.com

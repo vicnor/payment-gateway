@@ -10,6 +10,7 @@ import com.gateway.token.AuditCaptureAppender;
 import com.gateway.token.PanScanAppender;
 import com.gateway.token.TokenServiceApplication;
 import com.gateway.token.persistence.DataKeyItem;
+import com.gateway.token.persistence.RateLimitStore;
 import com.gateway.token.persistence.TokenItem;
 import java.net.URI;
 import org.junit.jupiter.api.AfterAll;
@@ -36,6 +37,7 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.kms.KmsClient;
 
 /**
@@ -101,6 +103,7 @@ class DetokenizeIT extends AbstractDynamoKmsIT {
     void setUp() {
         createTableIfAbsent("tokens", TokenItem.TABLE_SCHEMA);
         createTableIfAbsent("data_keys", DataKeyItem.TABLE_SCHEMA);
+        createRateLimitTableIfAbsent();
 
         LoggerContext ctx = (LoggerContext) LoggerFactory.getILoggerFactory();
 
@@ -124,6 +127,7 @@ class DetokenizeIT extends AbstractDynamoKmsIT {
 
     @Autowired private TestRestTemplate restTemplate;
     @Autowired private DynamoDbEnhancedClient enhancedClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     // -------------------------------------------------------------------
     // Happy path
@@ -286,6 +290,33 @@ class DetokenizeIT extends AbstractDynamoKmsIT {
             enhancedClient.table(name, schema).createTable();
         } catch (software.amazon.awssdk.services.dynamodb.model.ResourceInUseException ignored) {
             // Table already exists from a concurrently running IT
+        }
+    }
+
+    private void createRateLimitTableIfAbsent() {
+        try {
+            dynamoDbClient.createTable(
+                    b ->
+                            b.tableName(RateLimitStore.TABLE_NAME)
+                                    .keySchema(
+                                            k ->
+                                                    k.attributeName(RateLimitStore.ATTR_SESSION_ID)
+                                                            .keyType(
+                                                                    software.amazon.awssdk.services
+                                                                            .dynamodb.model.KeyType
+                                                                            .HASH))
+                                    .attributeDefinitions(
+                                            a ->
+                                                    a.attributeName(RateLimitStore.ATTR_SESSION_ID)
+                                                            .attributeType(
+                                                                    software.amazon.awssdk.services
+                                                                            .dynamodb.model
+                                                                            .ScalarAttributeType.S))
+                                    .billingMode(
+                                            software.amazon.awssdk.services.dynamodb.model
+                                                    .BillingMode.PAY_PER_REQUEST));
+        } catch (software.amazon.awssdk.services.dynamodb.model.ResourceInUseException ignored) {
+            // Already created by another IT in the shared DynamoDB-Local container
         }
     }
 }
