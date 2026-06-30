@@ -193,7 +193,7 @@ Token endpoint is exposed to the internet. Treat it as such.
 
 Built before payment-service so payment-service can integration-test against it.
 
-### 3.1 test-acquirer-service
+### ✅ 3.1 test-acquirer-service
 
 The mock acquirer.
 

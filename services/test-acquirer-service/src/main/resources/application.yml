@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: test-acquirer-service
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8105
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+gateway:
+  acquirer:
+    timeout-seconds: 30
+    internal:
+      callers:
+        - id: payment-service
+          secret: "${PAYMENT_SERVICE_INTERNAL_SECRET}"

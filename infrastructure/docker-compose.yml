@@ -38,14 +38,12 @@ services:
       interval: 5s
       retries: 10
 
-  # test-acquirer is opt-in. Will fail to build until task 3.1 creates
-  # services/test-acquirer-service. Use: docker compose --profile full up
   test-acquirer:
     build: ../services/test-acquirer-service
-    ports: ["8090:8080"]
+    ports: ["8090:8105"]
     profiles: ["full"]
-    depends_on:
-      localstack: { condition: service_healthy }
+    environment:
+      PAYMENT_SERVICE_INTERNAL_SECRET: local-payment-secret
 
 volumes:
   pg-data:

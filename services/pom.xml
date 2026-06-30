@@ -19,8 +19,8 @@
   <modules>
     <module>merchant-service</module>
     <module>token-service</module>
-    <!-- checkout-service, payment-service,
-         webhook-service, test-acquirer-service added in later phases -->
+    <module>test-acquirer-service</module>
+    <!-- checkout-service, payment-service, webhook-service added in later phases -->
   </modules>
 
   <build>

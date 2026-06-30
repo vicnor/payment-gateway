@@ -1,6 +1,8 @@
 spring:
   application:
     name: merchant-service
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   jpa:
     hibernate:
       ddl-auto: validate
