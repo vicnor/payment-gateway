@@ -42,10 +42,10 @@ class MerchantInternalControllerTest {
                 .andExpect(jsonPath("$.keys").isArray())
                 .andExpect(jsonPath("$.keys.length()").value(1))
                 .andExpect(jsonPath("$.keys[0].id").value("018e1234-5678-7abc-def0-123456789012"))
-                .andExpect(jsonPath("$.keys[0].merchantId").value("mer_01TEST"))
-                .andExpect(jsonPath("$.keys[0].keyPrefix").value("sk_test_01ABC1"))
+                .andExpect(jsonPath("$.keys[0].merchant_id").value("mer_01TEST"))
+                .andExpect(jsonPath("$.keys[0].key_prefix").value("sk_test_01ABC1"))
                 .andExpect(
-                        jsonPath("$.keys[0].keyHash")
+                        jsonPath("$.keys[0].key_hash")
                                 .value("$argon2id$v=19$m=16384,t=2,p=1$somehash"))
                 .andExpect(jsonPath("$.keys[0].mode").value("TEST"));
     }
@@ -78,7 +78,7 @@ class MerchantInternalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("mer_01TEST"))
                 .andExpect(jsonPath("$.name").value("Acme Corp"))
-                .andExpect(jsonPath("$.callbackUrl").value("https://acme.example.com/webhook"))
+                .andExpect(jsonPath("$.callback_url").value("https://acme.example.com/webhook"))
                 .andExpect(jsonPath("$.mode").value("TEST"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }

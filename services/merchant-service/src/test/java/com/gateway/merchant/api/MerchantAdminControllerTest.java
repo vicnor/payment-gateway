@@ -41,9 +41,9 @@ class MerchantAdminControllerTest {
                 """
                 {
                   "name": "  ",
-                  "callbackUrl": "https://acme.example.com/webhook",
-                  "returnUrlPattern": "^https://acme\\\\.example\\\\.com/.*$",
-                  "cancelUrlPattern": "^https://acme\\\\.example\\\\.com/cancel$",
+                  "callback_url": "https://acme.example.com/webhook",
+                  "return_url_pattern": "^https://acme\\\\.example\\\\.com/.*$",
+                  "cancel_url_pattern": "^https://acme\\\\.example\\\\.com/cancel$",
                   "mode": "TEST"
                 }
                 """;
@@ -60,9 +60,9 @@ class MerchantAdminControllerTest {
                 """
                 {
                   "name": "Acme Corp",
-                  "callbackUrl": "http://acme.example.com/webhook",
-                  "returnUrlPattern": "^https://acme\\\\.example\\\\.com/.*$",
-                  "cancelUrlPattern": "^https://acme\\\\.example\\\\.com/cancel$",
+                  "callback_url": "http://acme.example.com/webhook",
+                  "return_url_pattern": "^https://acme\\\\.example\\\\.com/.*$",
+                  "cancel_url_pattern": "^https://acme\\\\.example\\\\.com/cancel$",
                   "mode": "LIVE"
                 }
                 """;
@@ -79,9 +79,9 @@ class MerchantAdminControllerTest {
                 """
                 {
                   "name": "Acme Corp",
-                  "callbackUrl": "https://acme.example.com/webhook",
-                  "returnUrlPattern": "^https://(unclosed",
-                  "cancelUrlPattern": "^https://acme\\\\.example\\\\.com/cancel$",
+                  "callback_url": "https://acme.example.com/webhook",
+                  "return_url_pattern": "^https://(unclosed",
+                  "cancel_url_pattern": "^https://acme\\\\.example\\\\.com/cancel$",
                   "mode": "TEST"
                 }
                 """;
@@ -98,9 +98,9 @@ class MerchantAdminControllerTest {
                 """
                 {
                   "name": "Acme Corp",
-                  "callbackUrl": "https://acme.example.com/webhook",
-                  "returnUrlPattern": "^https://.*$",
-                  "cancelUrlPattern": "^https://.*$",
+                  "callback_url": "https://acme.example.com/webhook",
+                  "return_url_pattern": "^https://.*$",
+                  "cancel_url_pattern": "^https://.*$",
                   "mode": "INVALID_MODE"
                 }
                 """;
@@ -130,7 +130,7 @@ class MerchantAdminControllerTest {
                                 .content("{}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.key").value(plainKey))
-                .andExpect(jsonPath("$.keyPrefix").value("sk_test_01ABC1"))
+                .andExpect(jsonPath("$.key_prefix").value("sk_test_01ABC1"))
                 .andExpect(jsonPath("$.mode").value("TEST"));
     }
 

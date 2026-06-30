@@ -60,7 +60,7 @@ class MerchantInternalIT extends AbstractPostgresIT {
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).contains("\"id\":\"" + MERCHANT_ID + "\"");
         assertThat(response.getBody()).contains("\"name\":\"IT Merchant\"");
-        assertThat(response.getBody()).contains("\"callbackUrl\":\"https://example.com/webhook\"");
+        assertThat(response.getBody()).contains("\"callback_url\":\"https://example.com/webhook\"");
         assertThat(response.getBody()).contains("\"mode\":\"TEST\"");
         assertThat(response.getBody()).contains("\"status\":\"ACTIVE\"");
         assertThat(response.getHeaders().getFirst("X-Request-Id")).isNotNull();
@@ -101,9 +101,9 @@ class MerchantInternalIT extends AbstractPostgresIT {
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).contains("\"keys\"");
-        assertThat(response.getBody()).contains("\"merchantId\":\"" + MERCHANT_ID + "\"");
-        assertThat(response.getBody()).contains("\"keyPrefix\":\"" + KEY_PREFIX + "\"");
-        assertThat(response.getBody()).contains("\"keyHash\":\"$argon2id$fakehash\"");
+        assertThat(response.getBody()).contains("\"merchant_id\":\"" + MERCHANT_ID + "\"");
+        assertThat(response.getBody()).contains("\"key_prefix\":\"" + KEY_PREFIX + "\"");
+        assertThat(response.getBody()).contains("\"key_hash\":\"$argon2id$fakehash\"");
         assertThat(response.getBody()).contains("\"mode\":\"TEST\"");
         assertThat(response.getHeaders().getFirst("X-Request-Id")).isNotNull();
     }

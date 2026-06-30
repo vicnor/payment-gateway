@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payment
+    username: gateway
+    password: gateway
+
+shared:
+  security:
+    merchant-service:
+      base-url: http://localhost:8101

@@ -213,7 +213,7 @@ auth_code: "TEST123", acquirer_reference: "acq_test_..." }`; `4000 0000 0000 000
 
 ## Phase 4 — payment-service
 
-### 4.1 payment-service scaffold + migrations
+### ✅ 4.1 payment-service scaffold + migrations
 
 **Done when:**
 

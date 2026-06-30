@@ -20,7 +20,8 @@
     <module>merchant-service</module>
     <module>token-service</module>
     <module>test-acquirer-service</module>
-    <!-- checkout-service, payment-service, webhook-service added in later phases -->
+    <module>payment-service</module>
+    <!-- checkout-service, webhook-service added in later phases -->
   </modules>
 
   <build>

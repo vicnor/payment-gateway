@@ -1,8 +1,6 @@
 spring:
   application:
     name: token-service
-  jackson:
-    property-naming-strategy: SNAKE_CASE
 
 server:
   port: 8103

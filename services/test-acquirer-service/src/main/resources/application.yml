@@ -1,10 +1,6 @@
 spring:
   application:
     name: test-acquirer-service
-  jackson:
-    property-naming-strategy: SNAKE_CASE
-    serialization:
-      write-dates-as-timestamps: false
 
 server:
   port: 8105
