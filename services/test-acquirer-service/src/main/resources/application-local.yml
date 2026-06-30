@@ -1,0 +1,6 @@
+gateway:
+  acquirer:
+    internal:
+      callers:
+        - id: payment-service
+          secret: local-payment-secret
