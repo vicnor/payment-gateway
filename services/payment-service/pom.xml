@@ -51,6 +51,12 @@
 
     <dependency>
       <groupId>com.gateway</groupId>
+      <artifactId>shared-events</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.gateway</groupId>
       <artifactId>shared-testing</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -58,6 +64,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

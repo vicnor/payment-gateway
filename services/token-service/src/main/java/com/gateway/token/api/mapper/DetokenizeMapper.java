@@ -8,6 +8,13 @@ public final class DetokenizeMapper {
     private DetokenizeMapper() {}
 
     public static DetokenizeResponse toResponse(DetokenizeResult result) {
-        return new DetokenizeResponse(result.pan(), result.expMonth(), result.expYear());
+        return new DetokenizeResponse(
+                result.pan(),
+                result.expMonth(),
+                result.expYear(),
+                result.brand(),
+                result.last4(),
+                result.country(),
+                result.funding());
     }
 }

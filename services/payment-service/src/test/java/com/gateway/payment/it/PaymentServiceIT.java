@@ -28,6 +28,12 @@ class PaymentServiceIT extends AbstractPostgresIT {
         // Activate the ApiKeyAuthenticationFilter bean chain so the filter wiring is tested.
         // The merchant-service is not running; the filter rejects requests before any call is made.
         registry.add("shared.security.merchant-service.base-url", () -> "http://localhost:18101");
+        // Downstream services are not running in this smoke test — supply dead-URL placeholders so
+        // the context starts and the PaymentProperties bean validates.
+        registry.add("gateway.payment.token-service.base-url", () -> "http://localhost:19103");
+        registry.add("gateway.payment.token-service.internal-token", () -> "smoke-token");
+        registry.add("gateway.payment.acquirer-service.base-url", () -> "http://localhost:19105");
+        registry.add("gateway.payment.acquirer-service.internal-token", () -> "smoke-acquirer");
     }
 
     @Test
