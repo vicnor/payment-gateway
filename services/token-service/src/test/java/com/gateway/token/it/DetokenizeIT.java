@@ -134,7 +134,7 @@ class DetokenizeIT extends AbstractDynamoKmsIT {
     // -------------------------------------------------------------------
 
     @Test
-    void detokenizeReturnsPanAndExpiry() {
+    void detokenizeReturnsPanExpiryAndCardMetadata() {
         String tokenId = tokenize(SESSION_ID + "_happy");
 
         ResponseEntity<String> response = postDetokenize(tokenId);
@@ -143,6 +143,9 @@ class DetokenizeIT extends AbstractDynamoKmsIT {
         assertThat(response.getBody()).contains("\"pan\":\"" + TEST_PAN + "\"");
         assertThat(response.getBody()).contains("\"exp_month\":12");
         assertThat(response.getBody()).contains("\"exp_year\":2027");
+        // Card metadata — non-sensitive, safe to return (ADR-0004)
+        assertThat(response.getBody()).contains("\"brand\":\"visa\"");
+        assertThat(response.getBody()).contains("\"last4\":\"4242\"");
     }
 
     @Test

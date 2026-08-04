@@ -222,7 +222,7 @@ auth_code: "TEST123", acquirer_reference: "acq_test_..." }`; `4000 0000 0000 000
 - shared-security API key filter wired for Merchant API endpoints
 - Integration tests pass against Testcontainers Postgres
 
-### 4.2 Payment authorization
+### ✅ 4.2 Payment authorization
 
 The synchronous internal endpoint called by checkout-service.
 

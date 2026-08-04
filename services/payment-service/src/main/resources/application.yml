@@ -16,3 +16,14 @@ management:
     web:
       exposure:
         include: health
+
+gateway:
+  payment:
+    token-service:
+      base-url: "${GATEWAY_TOKEN_SERVICE_URL:http://localhost:8103}"
+      internal-token: "${PAYMENT_SERVICE_INTERNAL_SECRET:}"
+    acquirer-service:
+      base-url: "${GATEWAY_ACQUIRER_SERVICE_URL:http://localhost:8105}"
+      internal-token: "${PAYMENT_SERVICE_INTERNAL_SECRET:}"
+    internal:
+      callers: []

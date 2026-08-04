@@ -8,7 +8,7 @@ CREATE TABLE payments (
     amount                  BIGINT NOT NULL,                    -- minor units
     amount_captured         BIGINT NOT NULL DEFAULT 0,
     amount_refunded         BIGINT NOT NULL DEFAULT 0,
-    currency                CHAR(3) NOT NULL,
+    currency                VARCHAR(3) NOT NULL,
 
     status                  VARCHAR(32) NOT NULL,
     payment_method          VARCHAR(32) NOT NULL,               -- 'card'

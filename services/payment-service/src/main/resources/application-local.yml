@@ -8,3 +8,16 @@ shared:
   security:
     merchant-service:
       base-url: http://localhost:8101
+
+gateway:
+  payment:
+    token-service:
+      base-url: http://localhost:8103
+      internal-token: dev-secret-payment
+    acquirer-service:
+      base-url: http://localhost:8105
+      internal-token: dev-secret-payment
+    internal:
+      callers:
+        - id: checkout-service
+          secret: dev-secret-checkout

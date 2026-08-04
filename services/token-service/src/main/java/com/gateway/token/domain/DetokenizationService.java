@@ -3,6 +3,7 @@ package com.gateway.token.domain;
 import com.gateway.shared.web.error.ConflictException;
 import com.gateway.shared.web.error.NotFoundException;
 import com.gateway.token.domain.crypto.CardCryptoService;
+import com.gateway.token.persistence.CardAttribute;
 import com.gateway.token.persistence.DataKeyItem;
 import com.gateway.token.persistence.DataKeyStore;
 import com.gateway.token.persistence.TokenItem;
@@ -79,7 +80,7 @@ public class DetokenizationService {
         byte[] dek = kmsDecrypt(dataKey.getEncryptedDek());
         try {
             String payload = CardCryptoService.aesGcmDecrypt(dek, token.getEncryptedCardData());
-            DetokenizeResult result = parseCardPayload(payload);
+            DetokenizeResult result = buildResult(payload, token.getCard());
             audit(tokenId, callerId);
             return result;
         } finally {
@@ -96,11 +97,18 @@ public class DetokenizationService {
         return kmsClient.decrypt(request).plaintext().asByteArray();
     }
 
-    private static DetokenizeResult parseCardPayload(String json) {
+    private static DetokenizeResult buildResult(String json, CardAttribute card) {
         String pan = extractJsonString(json, "pan");
         int expMonth = extractJsonInt(json, "exp_month");
         int expYear = extractJsonInt(json, "exp_year");
-        return new DetokenizeResult(pan, expMonth, expYear);
+        // Card metadata is read from the plaintext token.card attribute (already stored
+        // unencrypted). No additional KMS/AES work is needed here; brand/last4/country/funding
+        // are non-sensitive and safe to expose to payment-service (ADR-0004).
+        String brand = card != null ? card.getBrand() : null;
+        String last4 = card != null ? card.getLast4() : null;
+        String country = card != null ? card.getCountry() : null;
+        String funding = card != null ? card.getFunding() : null;
+        return new DetokenizeResult(pan, expMonth, expYear, brand, last4, country, funding);
     }
 
     private static String extractJsonString(String json, String key) {

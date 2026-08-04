@@ -3,4 +3,4 @@ gateway:
     internal:
       callers:
         - id: payment-service
-          secret: local-payment-secret
+          secret: dev-secret-payment

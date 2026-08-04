@@ -57,7 +57,9 @@ class DetokenizeControllerTest {
     @Test
     void detokenizeReturns200WithCardData() throws Exception {
         when(detokenizationService.detokenize(eq(TOKEN_ID), eq(CALLER_ID)))
-                .thenReturn(new DetokenizeResult("4242424242424242", 12, 2027));
+                .thenReturn(
+                        new DetokenizeResult(
+                                "4242424242424242", 12, 2027, "visa", "4242", null, null));
 
         mockMvc.perform(
                         post("/internal/v1/tokens/{token}/detokenize", TOKEN_ID)
