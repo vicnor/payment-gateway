@@ -78,4 +78,8 @@ public class OutboxRecord {
     public Instant getPublishedAt() {
         return publishedAt;
     }
+
+    public void markPublished(Instant publishedAt) {
+        this.publishedAt = publishedAt;
+    }
 }
