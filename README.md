@@ -8,7 +8,7 @@ page; merchants receive webhooks with the outcome.
 This repo currently contains the **architectural design** and **roadmap** for v1. No code yet —
 that's the next step.
 
-- `CLAUDE.md` — project context loaded by Claude Code on every session
+- `AGENTS.md` — project instructions loaded by Codex on every session
 - `docs/architecture/` — the system design (start with `overview.md`)
 - `docs/adr/` — decision records: the "why" behind the design
 - `docs/development/` — local dev setup
@@ -16,14 +16,14 @@ that's the next step.
 
 ## Getting started
 
-If you're starting work on this with Claude Code:
+If you're starting work on this with Codex:
 
 ```bash
 cd payment-gateway
-claude
+codex
 ```
 
-Claude Code loads `CLAUDE.md` automatically. Tell it which task from `docs/roadmap.md` to start
+Codex loads `AGENTS.md` automatically. Tell it which task from `docs/roadmap.md` to start
 with — e.g. _"Start with task 0.1 from the roadmap"_.
 
 If you're reading the design first:
@@ -43,7 +43,7 @@ onboarding, mock acquirer, webhooks.
 Out of scope (architecture supports but doesn't implement): 3DS/SCA, real acquirer integration,
 card vault, additional payment methods, merchant dashboard, embedded fields.
 
-See `CLAUDE.md` for full scope and ADR-0001 for the PCI scope reasoning.
+See `AGENTS.md` for full scope and ADR-0001 for the PCI scope reasoning.
 
 ## Tech stack
 

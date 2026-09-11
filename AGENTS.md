@@ -47,7 +47,7 @@ For full detail, see `docs/architecture/`.
 
 ```
 payment-gateway/
-├── CLAUDE.md                        # this file
+├── AGENTS.md                        # this file
 ├── pom.xml                          # parent: dep mgmt, plugin mgmt
 ├── shared/                          # shared Maven modules
 │   ├── shared-events/               # SNS/SQS event POJOs
@@ -187,7 +187,7 @@ the fat JAR is produced as `*-exec.jar` and used for deployment.
 - For ANY change touching auth, PCI scope, or money, check `docs/adr/` first
 - When adding a new field to an event, treat it as a breaking change — update `shared-events`
   with a new event version, don't mutate the existing one
-- When working on a specific service, also load that service's `CLAUDE.md` if present
+- When working on a specific service, also load that service's `AGENTS.md` if present
 
 ## Never do
 
