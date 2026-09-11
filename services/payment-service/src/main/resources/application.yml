@@ -18,6 +18,8 @@ management:
         include: health
 
 gateway:
+  aws:
+    region: "${AWS_REGION:eu-north-1}"
   payment:
     token-service:
       base-url: "${GATEWAY_TOKEN_SERVICE_URL:http://localhost:8103}"
@@ -27,3 +29,8 @@ gateway:
       internal-token: "${PAYMENT_SERVICE_INTERNAL_SECRET:}"
     internal:
       callers: []
+    outbox:
+      topic-arn: "${GATEWAY_PAYMENT_EVENTS_TOPIC_ARN:}"
+      publisher:
+        enabled: true
+        batch-size: 50

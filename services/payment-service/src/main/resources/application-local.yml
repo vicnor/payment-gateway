@@ -10,6 +10,13 @@ shared:
       base-url: http://localhost:8101
 
 gateway:
+  aws:
+    region: eu-north-1
+    credentials:
+      access-key: test
+      secret-key: test
+    sns:
+      endpoint: http://localhost:4566
   payment:
     token-service:
       base-url: http://localhost:8103
@@ -21,3 +28,5 @@ gateway:
       callers:
         - id: checkout-service
           secret: dev-secret-checkout
+    outbox:
+      topic-arn: arn:aws:sns:eu-north-1:000000000000:payment-events

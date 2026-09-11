@@ -62,6 +62,9 @@ import org.springframework.test.context.TestPropertySource;
             // Internal caller allowlist — checkout-service is the expected caller
             "gateway.payment.internal.callers[0].id=checkout-service",
             "gateway.payment.internal.callers[0].secret=it-checkout-secret",
+            // This test doesn't wire up LocalStack/SNS — the outbox publisher would otherwise
+            // poll a nonexistent endpoint every second for the duration of this test.
+            "gateway.payment.outbox.publisher.enabled=false",
         })
 class PaymentAuthorizationIT extends AbstractPostgresIT {
 

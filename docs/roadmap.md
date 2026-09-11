@@ -238,7 +238,7 @@ merchant_reference, token, metadata }`
 - Returns the Payment shape from `docs/architecture/api.md`
 - Tests cover: approved, declined, acquirer timeout, token already used, token not found
 
-### 4.3 Outbox publisher
+### ✅ 4.3 Outbox publisher
 
 Reads from `outbox`, publishes to SNS, marks `published_at`.
 

@@ -54,6 +54,15 @@
       <artifactId>shared-events</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sns</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sqs</artifactId>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>com.gateway</groupId>

@@ -34,6 +34,9 @@ class PaymentServiceIT extends AbstractPostgresIT {
         registry.add("gateway.payment.token-service.internal-token", () -> "smoke-token");
         registry.add("gateway.payment.acquirer-service.base-url", () -> "http://localhost:19105");
         registry.add("gateway.payment.acquirer-service.internal-token", () -> "smoke-acquirer");
+        // This test doesn't wire up LocalStack/SNS — the outbox publisher would otherwise poll a
+        // nonexistent endpoint every second for the duration of this test.
+        registry.add("gateway.payment.outbox.publisher.enabled", () -> false);
     }
 
     @Test
