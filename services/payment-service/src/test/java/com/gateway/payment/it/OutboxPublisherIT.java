@@ -67,6 +67,7 @@ class OutboxPublisherIT extends AbstractPostgresLocalStackIT {
 
             registry.add("gateway.payment.outbox.topic-arn", () -> topicArn);
         }
+        registry.add("shared.security.merchant-service.base-url", () -> "http://localhost:19999");
         registry.add("gateway.aws.region", () -> "eu-north-1");
         registry.add("gateway.aws.sns.endpoint", AbstractPostgresLocalStackIT::snsEndpoint);
         registry.add("gateway.aws.credentials.access-key", () -> "test");

@@ -44,9 +44,9 @@ class HttpMerchantServiceClientTest {
                                                 {
                                                   "keys": [{
                                                     "id": "a0000000-0000-0000-0000-000000000001",
-                                                    "merchantId": "mer_abc123",
-                                                    "keyPrefix": "sk_test_01JTESTA",
-                                                    "keyHash": "$argon2id$fake$hash",
+                                                    "merchant_id": "mer_abc123",
+                                                    "key_prefix": "sk_test_01JTESTA",
+                                                    "key_hash": "$argon2id$fake$hash",
                                                     "mode": "TEST"
                                                   }]
                                                 }

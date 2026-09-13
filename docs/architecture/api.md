@@ -156,7 +156,7 @@ Retrieve a payment.
   "authorized_at":     1748160031,
   "captured_at":       1748160031,
   "metadata":          { "cart_id": "abc123" },
-  "livemode":          true
+  "livemode":          false
 }
 ```
 
@@ -168,6 +168,30 @@ Query params:
 - `limit` (default 25, max 100)
 - `starting_after` — `pay_...` id of the last item from the previous page
 - `created.gte` / `created.lte` — Unix epoch seconds
+
+**Response 200:**
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "pay_01HQX...",
+      "object": "payment"
+    }
+  ],
+  "has_more": true,
+  "url": "/v1/payments"
+}
+```
+
+Payments are ordered by `created` descending, then `id` descending to make the order stable when
+multiple payments have the same creation timestamp. To fetch the next page, pass the final item's
+`id` as `starting_after` while keeping the same creation-time filters.
+
+Creation-time bounds are inclusive. `limit` outside 1–100, invalid timestamps, inverted time
+bounds, and malformed or unknown cursors return `400`. A cursor owned by another merchant returns
+the same generic `invalid_cursor` response as an unknown cursor. Retrieval by malformed, unknown,
+or other-merchant payment id returns `404`.
 
 ### Versioning
 

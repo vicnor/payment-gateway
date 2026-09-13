@@ -11,6 +11,11 @@ spring:
 server:
   port: 8102
 
+shared:
+  security:
+    merchant-service:
+      base-url: "${GATEWAY_MERCHANT_SERVICE_URL}"
+
 management:
   endpoints:
     web:

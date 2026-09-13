@@ -251,7 +251,7 @@ FOR UPDATE SKIP LOCKED`
 - Test publishes a row and asserts it shows up in LocalStack SQS via the topic subscription
 - Metrics: outbox lag (max age of unpublished rows), publish rate, publish error rate
 
-### 4.4 Merchant API endpoints
+### ✅ 4.4 Merchant API endpoints
 
 The public read-only endpoints for payments.
 
@@ -262,6 +262,20 @@ The public read-only endpoints for payments.
 - Returns the shape in `docs/architecture/api.md`
 - 404 if the payment doesn't belong to the authenticated merchant (not 403 — don't leak
   existence)
+
+### 4.5 Merchant API rate limiting
+
+Apply the documented Merchant API limits consistently through shared infrastructure.
+
+**Done when:**
+
+- Shared in-process token-bucket limiter keyed by authenticated API key id
+- 100 requests/second sustained with a burst capacity of 200 per service instance
+- Successful responses include `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset`
+- Exceeded limits return 429 with the standard `rate_limit_error` envelope and rate-limit headers
+- Tests cover sustained traffic, burst exhaustion, refill, and isolation between API keys
+- Documentation states that v1 limits are per service instance; distributed enforcement is
+  revisited before production scaling
 
 ---
 
@@ -288,7 +302,18 @@ The public read-only endpoints for payments.
 - Tests: happy path, validation errors, idempotency, URL-pattern reject, cancel after
   completion → 409
 
-### 5.3 Checkout API for the browser
+### 5.3 Merchant API OpenAPI baseline
+
+Establish the machine-readable public contract after both v1 Merchant API aggregates exist.
+
+**Done when:**
+
+- `shared-api` contains an OpenAPI specification for payment and checkout-session Merchant APIs
+- Bearer API-key authentication, common headers, errors, pagination, and shared schemas are defined
+- The specification matches controller integration tests and `docs/architecture/api.md`
+- CI validates the specification and fails on invalid or incompatible contract changes
+
+### 5.4 Checkout API for the browser
 
 **Done when:**
 
@@ -302,7 +327,7 @@ redirect_url }`
 - Tests cover: secret mismatch, expired session, idempotent complete (retry posts same token →
   returns same outcome)
 
-### 5.4 Outbox + events
+### 5.5 Outbox + events
 
 Same pattern as payment-service.
 
