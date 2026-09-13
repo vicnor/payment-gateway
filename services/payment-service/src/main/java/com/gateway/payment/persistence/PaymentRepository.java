@@ -1,7 +1,11 @@
 package com.gateway.payment.persistence;
 
 import com.gateway.payment.domain.Payment;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface PaymentRepository extends JpaRepository<Payment, UUID> {}
+public interface PaymentRepository extends JpaRepository<Payment, UUID> {
+
+    Optional<Payment> findByExternalIdAndMerchantId(String externalId, String merchantId);
+}
