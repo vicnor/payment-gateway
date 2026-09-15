@@ -2,7 +2,7 @@ package com.gateway.shared.security;
 
 public final class MerchantPrincipalHolder {
 
-    static final String REQUEST_ATTR = "merchant.principal";
+    public static final String REQUEST_ATTR = "merchant.principal";
 
     private static final ThreadLocal<MerchantPrincipal> HOLDER = new ThreadLocal<>();
 

@@ -5,9 +5,13 @@ import com.gateway.shared.security.ApiKeyAuthenticationFilter;
 import com.gateway.shared.security.cache.ApiKeyCandidateCache;
 import com.gateway.shared.security.client.HttpMerchantServiceClient;
 import com.gateway.shared.security.client.MerchantServiceClient;
+import com.gateway.shared.security.ratelimit.ApiKeyRateLimitFilter;
+import com.gateway.shared.security.ratelimit.ApiKeyRateLimiter;
+import com.github.benmanes.caffeine.cache.Ticker;
 import java.time.Duration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -58,5 +62,33 @@ public class SharedSecurityAutoConfiguration {
             SharedSecurityProperties properties) {
         return new ApiKeyAuthenticationFilter(
                 cache, apiKeyPasswordEncoder, objectMapper, properties.skipPaths());
+    }
+
+    @Bean
+    @ConditionalOnBean(ApiKeyCandidateCache.class)
+    @ConditionalOnMissingBean(ApiKeyRateLimiter.class)
+    @ConditionalOnProperty(
+            prefix = "shared.security.rate-limit",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true)
+    public ApiKeyRateLimiter apiKeyRateLimiter(SharedSecurityProperties properties) {
+        var rateLimit = properties.rateLimit();
+        return new ApiKeyRateLimiter(
+                rateLimit.refillPerSecond(),
+                rateLimit.capacity(),
+                rateLimit.idleExpiry(),
+                Ticker.systemTicker());
+    }
+
+    @Bean
+    @ConditionalOnBean(ApiKeyRateLimiter.class)
+    @ConditionalOnMissingBean(ApiKeyRateLimitFilter.class)
+    public ApiKeyRateLimitFilter apiKeyRateLimitFilter(
+            ApiKeyRateLimiter rateLimiter,
+            ObjectMapper objectMapper,
+            SharedSecurityProperties properties) {
+        return new ApiKeyRateLimitFilter(
+                rateLimiter, objectMapper, properties.rateLimit().includePaths());
     }
 }

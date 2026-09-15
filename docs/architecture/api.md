@@ -47,7 +47,10 @@ one per HTTP retry. All retries of the same logical operation use the same key.
 | `Idempotency-Key` | request | Required on POST |
 | `X-Request-Id` | response | Echo this in support tickets |
 | `Idempotent-Replay` | response | `true` if served from idempotency cache |
-| `RateLimit-*` | response | Standard rate-limit headers per IETF draft |
+| `RateLimit-Limit` | response | Maximum token-bucket capacity |
+| `RateLimit-Remaining` | response | Whole tokens remaining after this request |
+| `RateLimit-Reset` | response | Seconds until the bucket is completely full |
+| `Retry-After` | response | On 429, seconds until one request can be accepted |
 
 ### Error shape
 
@@ -201,8 +204,27 @@ running indefinitely once v2 ships.
 
 ### Rate limiting
 
-Per API key: 100 requests/second sustained, 200/second burst. Returns `429` with standard
-`RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` headers.
+Merchant API requests are limited per authenticated API-key id using an in-process token bucket.
+Each bucket starts with a capacity of 200 requests and refills continuously at 100 requests per
+second. Every authenticated request under `/v1/` consumes one token, including requests that later
+return an error. Missing or invalid credentials do not consume quota because no API-key id has been
+authenticated.
+
+All authenticated Merchant API responses include:
+
+- `RateLimit-Limit: 200` — the maximum bucket capacity.
+- `RateLimit-Remaining` — whole tokens available after the current request, rounded down.
+- `RateLimit-Reset` — integer seconds until the bucket is completely full, rounded up (`0` when
+  already full).
+
+When no token is available, the service returns `429` with the standard `rate_limit_error` envelope
+and the same rate-limit headers. It also includes `Retry-After`, rounded up to the number of seconds
+until one token becomes available.
+
+In v1 each service instance owns its own buckets. Limits are therefore per API key, per service
+instance; adding instances increases the aggregate quota visible to a merchant. Distributed
+enforcement must be revisited before production scaling. The header names above remain the v1
+Merchant API contract even if the evolving IETF rate-limit-header draft changes.
 
 ---
 

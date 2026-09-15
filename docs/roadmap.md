@@ -263,7 +263,7 @@ The public read-only endpoints for payments.
 - 404 if the payment doesn't belong to the authenticated merchant (not 403 — don't leak
   existence)
 
-### 4.5 Merchant API rate limiting
+### ✅ 4.5 Merchant API rate limiting
 
 Apply the documented Merchant API limits consistently through shared infrastructure.
 
