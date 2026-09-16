@@ -281,7 +281,7 @@ Apply the documented Merchant API limits consistently through shared infrastruct
 
 ## Phase 5 — checkout-service
 
-### 5.1 checkout-service scaffold
+### ✅ 5.1 checkout-service scaffold
 
 **Done when:**
 
