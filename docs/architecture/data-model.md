@@ -320,10 +320,11 @@ CREATE TABLE webhook_attempts (
 
 ## Idempotency keys (DynamoDB, per service)
 
-Each service that exposes a POST in the Merchant API owns its own `idempotency_keys` table.
-The filter that handles this lives in `shared-web`.
+Each service that exposes a POST in the Merchant API owns a service-prefixed idempotency table.
+For example, checkout-service uses `checkout_idempotency_keys` and payment-service uses
+`payment_idempotency_keys`. The filter that handles this lives in `shared-web`.
 
-**Table:** `idempotency_keys`
+**Table:** `<service>_idempotency_keys`
 **Primary key:** `idempotency_key` (S) — composite `merchant_id#user_key`
 **TTL attribute:** `expires_at` (N) — 24 hours from creation
 

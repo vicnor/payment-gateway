@@ -21,7 +21,8 @@
     <module>token-service</module>
     <module>test-acquirer-service</module>
     <module>payment-service</module>
-    <!-- checkout-service, webhook-service added in later phases -->
+    <module>checkout-service</module>
+    <!-- webhook-service added in a later phase -->
   </modules>
 
   <build>

@@ -1,0 +1,8 @@
+gateway:
+  aws:
+    region: eu-north-1
+    credentials:
+      access-key: test
+      secret-key: test
+    dynamodb:
+      endpoint: http://localhost:8000

@@ -22,8 +22,11 @@ public abstract class AbstractDynamoIT {
     }
 
     @DynamicPropertySource
-    static void dynamoProperties(DynamicPropertyRegistry registry) {
-        registry.add("gateway.dynamodb.endpoint", AbstractDynamoIT::dynamoEndpoint);
+    static void awsProperties(DynamicPropertyRegistry registry) {
+        registry.add("gateway.aws.region", () -> "eu-north-1");
+        registry.add("gateway.aws.credentials.access-key", () -> "test");
+        registry.add("gateway.aws.credentials.secret-key", () -> "test");
+        registry.add("gateway.aws.dynamodb.endpoint", AbstractDynamoIT::dynamoEndpoint);
     }
 
     public static String dynamoEndpoint() {
