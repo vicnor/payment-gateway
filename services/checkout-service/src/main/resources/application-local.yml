@@ -6,3 +6,8 @@ gateway:
       secret-key: test
     dynamodb:
       endpoint: http://localhost:8000
+    kms:
+      endpoint: http://localhost:4566
+      key-id: alias/checkout-idempotency-dev
+  checkout:
+    base-url: http://localhost:3000

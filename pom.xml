@@ -33,6 +33,7 @@
     <ulid-creator.version>5.2.3</ulid-creator.version>
     <bouncycastle.version>1.80</bouncycastle.version>
     <wiremock.version>3.9.2</wiremock.version>
+    <mockito.version>5.17.0</mockito.version>
 
     <!-- Plugin versions -->
     <spotless.version>3.6.0</spotless.version>
@@ -125,11 +126,18 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
+          <configuration>
+            <!-- Mockito's inline mock maker must be loaded explicitly on Java 25. -->
+            <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${maven-failsafe-plugin.version}</version>
+          <configuration>
+            <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>

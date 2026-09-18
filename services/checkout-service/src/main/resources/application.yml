@@ -1,6 +1,9 @@
 spring:
   application:
     name: checkout-service
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
 
 server:
   port: 8100
@@ -10,3 +13,22 @@ management:
     web:
       exposure:
         include: health
+
+gateway:
+  aws:
+    region: "${AWS_REGION:eu-north-1}"
+    dynamodb:
+      endpoint: "${GATEWAY_DYNAMODB_ENDPOINT:}"
+    kms:
+      endpoint: "${GATEWAY_KMS_ENDPOINT:}"
+      key-id: "${GATEWAY_CHECKOUT_KMS_KEY_ID:alias/checkout-idempotency-dev}"
+  checkout:
+    base-url: "${GATEWAY_CHECKOUT_BASE_URL:https://checkout.yourgateway.com}"
+    session-lifetime: 30m
+    retention: 30d
+    maximum-amount: 99999999
+
+shared:
+  security:
+    merchant-service:
+      base-url: "${GATEWAY_MERCHANT_SERVICE_URL:http://localhost:8101}"

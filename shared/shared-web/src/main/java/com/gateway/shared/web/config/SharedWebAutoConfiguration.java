@@ -1,11 +1,15 @@
 package com.gateway.shared.web.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.gateway.shared.web.exception.GlobalExceptionHandler;
+import com.gateway.shared.web.idempotency.IdempotencyFilter;
+import com.gateway.shared.web.idempotency.IdempotencyStore;
 import com.gateway.shared.web.request.RequestIdFilter;
 import com.gateway.shared.web.request.RequestLoggingFilter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -34,5 +38,12 @@ public class SharedWebAutoConfiguration {
     @Bean
     public GlobalExceptionHandler globalExceptionHandler() {
         return new GlobalExceptionHandler();
+    }
+
+    @Bean
+    @ConditionalOnBean(IdempotencyStore.class)
+    public IdempotencyFilter idempotencyFilter(
+            IdempotencyStore idempotencyStore, ObjectMapper objectMapper) {
+        return new IdempotencyFilter(idempotencyStore, objectMapper);
     }
 }

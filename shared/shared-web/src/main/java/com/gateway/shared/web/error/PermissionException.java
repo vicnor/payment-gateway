@@ -8,6 +8,10 @@ public final class PermissionException extends ApiException {
         super("permission_error", "permission_error", message, HttpStatus.FORBIDDEN);
     }
 
+    public PermissionException(String code, String message) {
+        super("permission_error", code, message, HttpStatus.FORBIDDEN);
+    }
+
     public PermissionException() {
         this("You do not have permission to perform this action.");
     }

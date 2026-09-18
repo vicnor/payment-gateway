@@ -30,11 +30,16 @@ Key modes:
 
 ### Idempotency
 
-Every POST endpoint **requires** an `Idempotency-Key` header (UUID recommended). Stored for 24h.
+Every POST endpoint **requires** an `Idempotency-Key` header containing a canonical UUID. Stored
+for 24h.
 
 | Same key, same body | Same key, different body | New key |
 |---|---|---|
 | Return cached response with `Idempotent-Replay: true` | `409 Conflict`, `idempotency_key_conflict` | Process normally |
+
+If an identical request is still processing, concurrent attempts return `409 Conflict` with
+`idempotency_request_in_progress`. Retrying after the first request completes returns its cached
+response.
 
 Merchants should generate one key per logical operation (one per "create this session"), not
 one per HTTP retry. All retries of the same logical operation use the same key.
@@ -73,8 +78,9 @@ one per HTTP retry. All retries of the same logical operation use the same key.
 | `permission_error` | 403 |
 | `not_found` | 404 |
 | `idempotency_key_conflict` | 409 |
+| `conflict_error` | 409 |
 | `rate_limit_error` | 429 |
-| `api_error` (us) | 500 |
+| `api_error` (us or a required dependency) | 500 or 503 |
 | `acquirer_unavailable` | 503 |
 
 ### Endpoints (v1)
