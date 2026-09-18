@@ -94,6 +94,10 @@ DynamoDB Local runs in `-inMemory` mode — no persistent volume. State is lost 
 restart, which is fine because `dev-down -v` wipes all state and `dev-bootstrap` reprovisions
 everything from scratch.
 
+The bootstrap script verifies each table's TTL attribute. If an older checkout table still has
+TTL enabled on `expires_at`, bootstrap fails instead of silently retaining the unsafe setting;
+run `make dev-reset` to recreate it with TTL on `delete_at`.
+
 ### Notes on LocalStack 4.x
 
 LocalStack 4.x reports service status as `"available"` (ready to use, lazy init) or `"running"`
@@ -130,10 +134,12 @@ Resources provisioned:
 | SNS topics | `payment-events`, `checkout-events` |
 | SQS queues | `webhook-dispatch` + DLQ, `payment-reconciliation` + DLQ (`maxReceiveCount=5`) |
 | SNS→SQS subscription | `payment-events` → `webhook-dispatch` |
-| KMS key | alias `alias/token-service-dev` (envelope encryption for token-service) |
-| DynamoDB: `checkout_sessions` | HASH `session_id`, GSI `merchant-created-index`, TTL `expires_at` |
+| KMS keys | `alias/token-service-dev`, `alias/checkout-idempotency-dev` |
+| DynamoDB: `checkout_sessions` | HASH `session_id`, GSI `merchant-created-index`, TTL `delete_at` |
+| DynamoDB: `checkout_merchant_references` | HASH `reference_key`; permanent per-merchant reference reservation |
 | DynamoDB: `tokens` | HASH `token`, TTL `expires_at` |
 | DynamoDB: `data_keys` | HASH `key_id`, TTL `expires_at` (encrypted DEKs for token-service) |
+| DynamoDB: `token_rate_limits` | HASH `session_id`, TTL `expires_at` |
 | DynamoDB: `checkout_idempotency_keys` | HASH `idempotency_key`, TTL `expires_at` |
 | DynamoDB: `payment_idempotency_keys` | HASH `idempotency_key`, TTL `expires_at` |
 
@@ -326,7 +332,7 @@ make dev-bootstrap
 cd frontend/checkout-ui && pnpm install && pnpm dev
 ```
 
-Smoke test (requires task 1.3+ to be complete):
+Checkout-session smoke test (requires task 5.2+ to be complete):
 ```bash
 # Create a session
 curl -X POST http://localhost:8100/v1/checkout-sessions \
@@ -355,10 +361,10 @@ aws --region eu-north-1 --endpoint-url=http://localhost:4566 sns list-topics
 # 4 SQS queues (webhook-dispatch, webhook-dispatch-dlq, payment-reconciliation, payment-reconciliation-dlq)
 aws --region eu-north-1 --endpoint-url=http://localhost:4566 sqs list-queues
 
-# 5 DynamoDB tables
+# 7 DynamoDB tables
 aws --region eu-north-1 --endpoint-url=http://localhost:8000 dynamodb list-tables
 
-# KMS alias
+# KMS aliases
 aws --region eu-north-1 --endpoint-url=http://localhost:4566 kms list-aliases
 
 # 3 Postgres databases

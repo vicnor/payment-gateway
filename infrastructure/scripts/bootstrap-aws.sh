@@ -69,6 +69,18 @@ else
   echo "  KMS key: alias/token-service-dev (already exists)"
 fi
 
+CHECKOUT_KEY_EXISTS=0
+$KMS describe-key --key-id alias/checkout-idempotency-dev >/dev/null 2>&1 && CHECKOUT_KEY_EXISTS=1 || true
+if [ "$CHECKOUT_KEY_EXISTS" -eq 0 ]; then
+  CHECKOUT_KEY_ID=$($KMS create-key --description "checkout-service idempotency secret encryption (dev)" \
+    | jq -r .KeyMetadata.KeyId)
+  $KMS create-alias --alias-name alias/checkout-idempotency-dev \
+    --target-key-id "$CHECKOUT_KEY_ID" >/dev/null
+  echo "  KMS key: alias/checkout-idempotency-dev ($CHECKOUT_KEY_ID)"
+else
+  echo "  KMS key: alias/checkout-idempotency-dev (already exists)"
+fi
+
 # ---------------------------------------------------------------------------
 # DynamoDB tables (each guarded by describe-table; skip if exists)
 # ---------------------------------------------------------------------------
@@ -87,8 +99,29 @@ create_dynamo_table() {
 enable_ttl() {
   local table_name="$1"
   local attr="$2"
+  local current_status
+  local current_attr
+
+  current_status=$($DDB describe-time-to-live --table-name "$table_name" \
+    | jq -r '.TimeToLiveDescription.TimeToLiveStatus // "DISABLED"')
+  current_attr=$($DDB describe-time-to-live --table-name "$table_name" \
+    | jq -r '.TimeToLiveDescription.AttributeName // ""')
+
+  if { [ "$current_status" = "ENABLED" ] || [ "$current_status" = "ENABLING" ]; } \
+      && [ "$current_attr" = "$attr" ]; then
+    echo "  DynamoDB TTL: $table_name.$attr (already enabled or enabling)"
+    return
+  fi
+
+  if [ "$current_status" != "DISABLED" ] && [ -n "$current_attr" ] && [ "$current_attr" != "$attr" ]; then
+    echo "ERROR: DynamoDB table '$table_name' has TTL enabled on '$current_attr', expected '$attr'." >&2
+    echo "Reset local infrastructure with 'make dev-reset', then run 'make dev-bootstrap' again." >&2
+    return 1
+  fi
+
   $DDB update-time-to-live --table-name "$table_name" \
-    --time-to-live-specification "Enabled=true, AttributeName=$attr" >/dev/null 2>&1 || true
+    --time-to-live-specification "Enabled=true, AttributeName=$attr" >/dev/null
+  echo "  DynamoDB TTL: $table_name.$attr (enabled)"
 }
 
 # checkout_sessions: HASH session_id, GSI merchant-created-index
@@ -103,7 +136,12 @@ create_dynamo_table checkout_sessions \
        \"KeySchema\":[{\"AttributeName\":\"merchant_id\",\"KeyType\":\"HASH\"},
                       {\"AttributeName\":\"created_at\",\"KeyType\":\"RANGE\"}],
        \"Projection\":{\"ProjectionType\":\"ALL\"}}]"
-enable_ttl checkout_sessions expires_at
+enable_ttl checkout_sessions delete_at
+
+# Permanent uniqueness reservation for merchant_reference per merchant.
+create_dynamo_table checkout_merchant_references \
+  --attribute-definitions AttributeName=reference_key,AttributeType=S \
+  --key-schema AttributeName=reference_key,KeyType=HASH
 
 # tokens: HASH token
 create_dynamo_table tokens \

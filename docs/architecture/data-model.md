@@ -20,7 +20,7 @@ and the corresponding migration file in lockstep.
 **Table:** `checkout_sessions`
 **Primary key:** `session_id` (S)
 **GSI:** `merchant-created-index` — HASH `merchant_id` (S), RANGE `created_at` (N)
-**TTL attribute:** `expires_at` (N, epoch seconds)
+**TTL attribute:** `delete_at` (N, epoch seconds; 30-day retention)
 **Billing:** `PAY_PER_REQUEST`
 
 ```json
@@ -51,7 +51,8 @@ and the corresponding migration file in lockstep.
   "created_at":              1748160000,
   "updated_at":              1748160005,
   "completed_at":            null,
-  "expires_at":              1748161800
+  "expires_at":              1748161800,
+  "delete_at":               1750752000
 }
 ```
 
@@ -65,11 +66,18 @@ CREATED → IN_PROGRESS → COMPLETED
 
 `IN_PROGRESS` is entered when the consumer first fetches `/checkout/{id}/session-details`.
 `EXPIRED` is enforced on read if `now > expires_at` even before TTL deletes the record.
+`expires_at` is the business deadline. DynamoDB TTL uses `delete_at`, 30 days after creation, so
+expired sessions remain retrievable long enough for merchant support and reliable event handling.
 
 **Notes:**
 - `session_secret_hash` is a SHA-256 of the secret carried in the URL as `?k=...`. The plain
   secret is never persisted — only its hash, compared on each browser request.
 - `available_payment_methods` is `["card"]` always in v1, but the field stays in the model.
+
+**Table:** `checkout_merchant_references`
+**Primary key:** `reference_key` (S), SHA-256 of merchant id plus the case-sensitive merchant
+reference. Rows have no TTL; they permanently reserve a reference in v1. Session creation writes
+this reservation, the session, and its completed idempotency record in one DynamoDB transaction.
 
 ---
 
@@ -325,17 +333,23 @@ For example, checkout-service uses `checkout_idempotency_keys` and payment-servi
 `payment_idempotency_keys`. The filter that handles this lives in `shared-web`.
 
 **Table:** `<service>_idempotency_keys`
-**Primary key:** `idempotency_key` (S) — composite `merchant_id#user_key`
+**Primary key:** `idempotency_key` (S) — SHA-256 of merchant id, HTTP method, request path, and
+the canonical UUID supplied in `Idempotency-Key`
 **TTL attribute:** `expires_at` (N) — 24 hours from creation
 
 ```json
 {
-  "idempotency_key":    "mer_01HQX#5d7f3c2a-e1b8-4c91-9f6e-0a8b1d3c5e7f",
-  "request_hash":       "sha256:...",
-  "response_status":    201,
-  "response_body":      "{ ... }",
-  "created_at":         1748160000,
-  "expires_at":         1748246400
+  "idempotency_key":       "<sha256 hex>",
+  "request_hash":          "<sha256 hex of exact request body>",
+  "owner_token":           "550e8400-e29b-41d4-a716-446655440000",
+  "status":                "PROCESSING | COMPLETED",
+  "lease_until":           1748160060,
+  "response_status":       201,
+  "response_content_type": "application/json",
+  "response_body":         "{ ... with any session secret replaced by a placeholder ... }",
+  "encrypted_secret":      "<optional KMS ciphertext>",
+  "session_id":            "cs_01HQX...",
+  "expires_at":            1748246400
 }
 ```
 
@@ -343,3 +357,6 @@ For example, checkout-service uses `checkout_idempotency_keys` and payment-servi
 - Same key + same `request_hash` → return cached response with `Idempotent-Replay: true` header
 - Same key + different `request_hash` → `409 Conflict`
 - New key → process the request and cache the response on success (2xx) only
+- A `PROCESSING` row has a 60-second ownership lease so a crashed request can be reclaimed.
+- Checkout session secrets needed for an exact replay are encrypted with KMS and are never stored
+  in plaintext or in `response_body`.

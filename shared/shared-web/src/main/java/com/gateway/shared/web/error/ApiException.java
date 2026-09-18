@@ -10,7 +10,8 @@ public abstract sealed class ApiException extends RuntimeException
                 AuthenticationException,
                 PermissionException,
                 RateLimitException,
-                AcquirerUnavailableException {
+                AcquirerUnavailableException,
+                ServiceUnavailableException {
 
     private final String type;
     private final String code;

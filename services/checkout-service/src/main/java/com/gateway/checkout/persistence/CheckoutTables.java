@@ -23,4 +23,10 @@ public class CheckoutTables {
     public DynamoDbTable<IdempotencyKeyItem> checkoutIdempotencyKeysTable() {
         return enhancedClient.table("checkout_idempotency_keys", IdempotencyKeyItem.TABLE_SCHEMA);
     }
+
+    @Bean
+    public DynamoDbTable<MerchantReferenceItem> checkoutMerchantReferencesTable() {
+        return enhancedClient.table(
+                "checkout_merchant_references", MerchantReferenceItem.TABLE_SCHEMA);
+    }
 }

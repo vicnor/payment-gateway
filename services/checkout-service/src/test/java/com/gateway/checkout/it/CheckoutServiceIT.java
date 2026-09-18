@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.gateway.checkout.CheckoutServiceApplication;
 import com.gateway.checkout.persistence.CheckoutSessionItem;
 import com.gateway.checkout.persistence.IdempotencyKeyItem;
+import com.gateway.checkout.persistence.MerchantReferenceItem;
 import com.gateway.shared.testing.AbstractDynamoIT;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,10 +42,15 @@ class CheckoutServiceIT extends AbstractDynamoIT {
     @Qualifier("checkoutIdempotencyKeysTable")
     private DynamoDbTable<IdempotencyKeyItem> checkoutIdempotencyKeysTable;
 
+    @Autowired
+    @Qualifier("checkoutMerchantReferencesTable")
+    private DynamoDbTable<MerchantReferenceItem> checkoutMerchantReferencesTable;
+
     @BeforeAll
     void createTables() {
         createTableIfAbsent(checkoutSessionsTable);
         createTableIfAbsent(checkoutIdempotencyKeysTable);
+        createTableIfAbsent(checkoutMerchantReferencesTable);
     }
 
     private void createTableIfAbsent(DynamoDbTable<?> table) {
@@ -73,6 +79,7 @@ class CheckoutServiceIT extends AbstractDynamoIT {
         item.setMerchantId("mer_scaffold_test_01");
         item.setCreatedAt(now);
         item.setExpiresAt(now + 1800);
+        item.setDeleteAt(now + 2_592_000);
 
         checkoutSessionsTable.putItem(item);
 
@@ -83,6 +90,7 @@ class CheckoutServiceIT extends AbstractDynamoIT {
         assertThat(fetched.getMerchantId()).isEqualTo("mer_scaffold_test_01");
         assertThat(fetched.getCreatedAt()).isEqualTo(now);
         assertThat(fetched.getExpiresAt()).isEqualTo(now + 1800);
+        assertThat(fetched.getDeleteAt()).isEqualTo(now + 2_592_000);
 
         GlobalSecondaryIndexDescription index =
                 dynamoDbClient

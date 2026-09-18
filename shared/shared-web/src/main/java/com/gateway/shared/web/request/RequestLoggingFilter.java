@@ -12,7 +12,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Slf4j
-@Order(Ordered.HIGHEST_PRECEDENCE + 10)
+@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     @Override

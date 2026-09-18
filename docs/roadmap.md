@@ -288,7 +288,7 @@ Apply the documented Merchant API limits consistently through shared infrastruct
 - Service builds, starts on port 8100
 - DynamoDB enhanced client wired for `checkout_sessions` and `checkout_idempotency_keys`
 
-### 5.2 Merchant API for sessions
+### ✅ 5.2 Merchant API for sessions
 
 **Done when:**
 
@@ -296,8 +296,8 @@ Apply the documented Merchant API limits consistently through shared infrastruct
   `docs/architecture/api.md`
 - Idempotency-Key handling (shared-web filter from earlier)
 - URL pattern validation against merchant config
-- `merchant_reference` uniqueness per merchant (handled at insert time with a conditional
-  write — `attribute_not_exists` on a separate GSI)
+- `merchant_reference` uniqueness per merchant (handled atomically with a conditional write to a
+  dedicated reference-reservation table)
 - `GET /v1/checkout-sessions/{id}`, `POST /v1/checkout-sessions/{id}/cancel`
 - Tests: happy path, validation errors, idempotency, URL-pattern reject, cancel after
   completion → 409

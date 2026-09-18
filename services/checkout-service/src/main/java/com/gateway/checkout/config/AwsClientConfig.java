@@ -12,6 +12,8 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
+import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.kms.KmsClientBuilder;
 
 @Configuration
 @EnableConfigurationProperties(AwsProperties.class)
@@ -30,7 +32,9 @@ public class AwsClientConfig {
                         .region(Region.of(properties.region()))
                         .credentialsProvider(credentialsProvider());
 
-        if (properties.dynamodb() != null && properties.dynamodb().endpoint() != null) {
+        if (properties.dynamodb() != null
+                && properties.dynamodb().endpoint() != null
+                && !properties.dynamodb().endpoint().isBlank()) {
             builder.endpointOverride(URI.create(properties.dynamodb().endpoint()));
         }
 
@@ -40,6 +44,20 @@ public class AwsClientConfig {
     @Bean
     public DynamoDbEnhancedClient dynamoDbEnhancedClient(DynamoDbClient dynamoDbClient) {
         return DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDbClient).build();
+    }
+
+    @Bean
+    public KmsClient kmsClient() {
+        KmsClientBuilder builder =
+                KmsClient.builder()
+                        .region(Region.of(properties.region()))
+                        .credentialsProvider(credentialsProvider());
+        if (properties.kms() != null
+                && properties.kms().endpoint() != null
+                && !properties.kms().endpoint().isBlank()) {
+            builder.endpointOverride(URI.create(properties.kms().endpoint()));
+        }
+        return builder.build();
     }
 
     private AwsCredentialsProvider credentialsProvider() {
