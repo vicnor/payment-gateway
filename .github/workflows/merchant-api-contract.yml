@@ -40,6 +40,24 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Repair a corrupt cached Mockito agent
+        shell: bash
+        run: |
+          mockito_version="$(sed -n \
+            's|.*<mockito.version>\([^<]*\)</mockito.version>.*|\1|p' pom.xml)"
+          mockito_dir="${HOME}/.m2/repository/org/mockito/mockito-core/${mockito_version}"
+          mockito_jar="${mockito_dir}/mockito-core-${mockito_version}.jar"
+
+          if [[ -z "${mockito_version}" ]]; then
+            echo "::error::Could not read mockito.version from pom.xml"
+            exit 1
+          fi
+
+          if [[ -f "${mockito_jar}" ]] && ! jar tf "${mockito_jar}" >/dev/null 2>&1; then
+            echo "::warning::Removing corrupt cached Mockito agent so Maven can download it again"
+            rm -rf "${mockito_dir}"
+          fi
+
       - name: Validate specification and controller contracts
         run: ./mvnw -pl services/payment-service,services/checkout-service -am verify
 
