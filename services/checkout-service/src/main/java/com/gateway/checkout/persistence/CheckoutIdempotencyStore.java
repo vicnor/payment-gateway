@@ -335,7 +335,8 @@ public class CheckoutIdempotencyStore implements IdempotencyStore {
                 s.getExpiresAt(),
                 s.getCreatedAt(),
                 Boolean.TRUE.equals(s.getLivemode()),
-                s.getPaymentId());
+                s.getPaymentId(),
+                null);
     }
 
     public String checkoutUrl(CheckoutSessionItem session) {

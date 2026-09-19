@@ -14,6 +14,7 @@ import com.gateway.checkout.persistence.IdempotencyKeyItem;
 import com.gateway.checkout.persistence.MerchantReferenceItem;
 import com.gateway.shared.security.ApiKeyFormat;
 import com.gateway.shared.testing.AbstractDynamoKmsIT;
+import com.gateway.shared.testing.MerchantApiContract;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -163,6 +164,7 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
         assertThat(replay.getHeaders().getFirst("Idempotent-Replay")).isEqualTo("true");
         assertThat(mapper.readTree(replay.getBody())).isEqualTo(mapper.readTree(first.getBody()));
         JsonNode body = mapper.readTree(first.getBody());
+        assertThat(body.path("next_action").isNull()).isTrue();
         assertThat(body.path("url").asText()).startsWith("https://checkout.test/checkout/cs_");
         assertThat(body.path("livemode").asBoolean()).isFalse();
         ResponseEntity<String> retrieved = get("/v1/checkout-sessions/" + body.path("id").asText());
@@ -238,6 +240,8 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
                         "/v1/checkout-sessions",
                         new HttpEntity<>(validBody("order-it-no-key"), headers),
                         String.class);
+        MerchantApiContract.assertResponseConforms(
+                HttpMethod.POST, "/v1/checkout-sessions", response);
         assertThat(response.getStatusCode().value()).isEqualTo(400);
         assertThat(response.getBody()).contains("missing_idempotency_key");
     }
@@ -365,6 +369,8 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
                         HttpMethod.GET,
                         HttpEntity.EMPTY,
                         String.class);
+        MerchantApiContract.assertResponseConforms(
+                HttpMethod.GET, "/v1/checkout-sessions/does-not-matter", missingAuth);
         assertThat(missingAuth.getStatusCode().value()).isEqualTo(401);
 
         HttpHeaders malformed = new HttpHeaders();
@@ -620,7 +626,10 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
         HttpHeaders headers = authHeaders(apiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Idempotency-Key", key);
-        return rest.exchange(path, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+        ResponseEntity<String> response =
+                rest.exchange(path, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+        MerchantApiContract.assertConforms(HttpMethod.POST, path, headers, body, response);
+        return response;
     }
 
     private HttpHeaders authHeaders() {
@@ -638,8 +647,11 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
     }
 
     private ResponseEntity<String> getWithKey(String path, String apiKey) {
-        return rest.exchange(
-                path, HttpMethod.GET, new HttpEntity<>(authHeaders(apiKey)), String.class);
+        HttpHeaders headers = authHeaders(apiKey);
+        ResponseEntity<String> response =
+                rest.exchange(path, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        MerchantApiContract.assertConforms(HttpMethod.GET, path, headers, null, response);
+        return response;
     }
 
     private void assertValidation(String body, String code) {

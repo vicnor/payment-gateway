@@ -56,7 +56,8 @@ class CheckoutSessionMerchantControllerTest {
                 .andExpect(jsonPath("$.object").value("checkout_session"))
                 .andExpect(jsonPath("$.status").value("CREATED"))
                 .andExpect(jsonPath("$.amount").value(19900))
-                .andExpect(jsonPath("$.livemode").value(false));
+                .andExpect(jsonPath("$.livemode").value(false))
+                .andExpect(jsonPath("$.next_action").isEmpty());
     }
 
     @Test
@@ -115,6 +116,7 @@ class CheckoutSessionMerchantControllerTest {
                     1800,
                     0,
                     false,
+                    null,
                     null);
         }
     }

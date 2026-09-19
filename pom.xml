@@ -34,6 +34,8 @@
     <bouncycastle.version>1.80</bouncycastle.version>
     <wiremock.version>3.9.2</wiremock.version>
     <mockito.version>5.17.0</mockito.version>
+    <openapi-generator.version>7.22.0</openapi-generator.version>
+    <openapi-request-validator.version>3.0.0</openapi-request-validator.version>
 
     <!-- Plugin versions -->
     <spotless.version>3.6.0</spotless.version>
@@ -93,6 +95,11 @@
         <artifactId>wiremock-standalone</artifactId>
         <version>${wiremock.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.atlassian.oai</groupId>
+        <artifactId>openapi-request-validator-core</artifactId>
+        <version>${openapi-request-validator.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -138,6 +145,11 @@
           <configuration>
             <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.openapitools</groupId>
+          <artifactId>openapi-generator-maven-plugin</artifactId>
+          <version>${openapi-generator.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>

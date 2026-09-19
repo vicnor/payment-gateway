@@ -12,6 +12,7 @@ import com.gateway.payment.PaymentServiceApplication;
 import com.gateway.shared.security.ApiKeyFormat;
 import com.gateway.shared.security.ratelimit.ApiKeyRateLimiter;
 import com.gateway.shared.testing.AbstractPostgresIT;
+import com.gateway.shared.testing.MerchantApiContract;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -143,8 +144,11 @@ class PaymentMerchantRateLimitIT extends AbstractPostgresIT {
     private ResponseEntity<String> getPayments(String apiKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey);
-        return restTemplate.exchange(
-                "/v1/payments", HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        ResponseEntity<String> response =
+                restTemplate.exchange(
+                        "/v1/payments", HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        MerchantApiContract.assertConforms(HttpMethod.GET, "/v1/payments", headers, null, response);
+        return response;
     }
 
     @TestConfiguration(proxyBeanMethods = false)

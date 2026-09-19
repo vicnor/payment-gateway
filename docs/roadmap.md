@@ -302,7 +302,7 @@ Apply the documented Merchant API limits consistently through shared infrastruct
 - Tests: happy path, validation errors, idempotency, URL-pattern reject, cancel after
   completion → 409
 
-### 5.3 Merchant API OpenAPI baseline
+### ✅ 5.3 Merchant API OpenAPI baseline
 
 Establish the machine-readable public contract after both v1 Merchant API aggregates exist.
 

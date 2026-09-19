@@ -11,4 +11,9 @@ public record CheckoutSessionResponse(
         long expiresAt,
         long created,
         boolean livemode,
-        String paymentId) {}
+        String paymentId,
+        NextAction nextAction) {
+
+    /** Reserved for the deferred 3DS flow; always {@code null} in v1. */
+    public record NextAction(String type, String url) {}
+}
