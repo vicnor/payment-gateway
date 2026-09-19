@@ -15,6 +15,7 @@ import com.gateway.payment.domain.PaymentStatus;
 import com.gateway.payment.persistence.PaymentRepository;
 import com.gateway.shared.security.ApiKeyFormat;
 import com.gateway.shared.testing.AbstractPostgresIT;
+import com.gateway.shared.testing.MerchantApiContract;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -203,6 +204,7 @@ class PaymentMerchantApiIT extends AbstractPostgresIT {
     @Test
     void missingAndInvalidApiKeysReturn401() {
         ResponseEntity<String> missing = restTemplate.getForEntity("/v1/payments", String.class);
+        MerchantApiContract.assertResponseConforms(HttpMethod.GET, "/v1/payments", missing);
         assertThat(missing.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(missing.getBody()).contains("authentication_error");
         assertThat(missing.getHeaders().getFirst("X-Request-Id")).startsWith("req_");
@@ -244,7 +246,11 @@ class PaymentMerchantApiIT extends AbstractPostgresIT {
     private ResponseEntity<String> getWithApiKey(String path) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(API_KEY);
-        return restTemplate.exchange(path, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        ResponseEntity<String> response =
+                restTemplate.exchange(
+                        path, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        MerchantApiContract.assertConforms(HttpMethod.GET, path, headers, null, response);
+        return response;
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {

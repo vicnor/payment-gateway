@@ -97,7 +97,7 @@ Create a checkout session.
   "merchant_reference": "order-2026-00472",
   "return_url":         "https://merchant.example/return?o=472",
   "cancel_url":         "https://merchant.example/cancel?o=472",
-  "customer":           { "email": "kunde@example.dk" },
+  "customer":           { "email": "kunde@example.dk", "reference": "cust_9982" },
   "description":        "Order #472",
   "locale":             "da-DK",
   "metadata":           { "cart_id": "abc123" }
@@ -110,22 +110,29 @@ Create a checkout session.
   "id":                 "cs_01HQX2YK3M4N5P6Q7R8S9T0V1W",
   "object":             "checkout_session",
   "status":             "CREATED",
-  "url":                "https://checkout.yourgateway.com/cs_01HQX.../?k=hf83lq...",
+  "url":                "https://checkout.yourgateway.com/checkout/cs_01HQX...?k=hf83lq...",
   "amount":             19900,
   "currency":           "DKK",
   "merchant_reference": "order-2026-00472",
   "expires_at":         1748161800,
   "created":            1748160000,
-  "livemode":           true,
-  "payment_id":         null
+  "livemode":           false,
+  "payment_id":         null,
+  "next_action":        null
 }
 ```
 
 **Validation rules:**
-- `amount` ≥ 100 (1.00 in minor units of any currency; configurable per merchant later)
+- `amount` is 100–99,999,999 in minor units (the upper bound is configurable)
 - `currency` ∈ supported set (start: DKK, EUR, USD, SEK, NOK)
+- `locale`, when supplied, is `da-DK` or `en-US` (defaults to `en-US`)
+- `customer` may contain an email address and a merchant-defined reference
+- `metadata` has at most 50 entries; keys are 1–40 characters and values are 1–500 characters
 - `return_url` and `cancel_url` must match merchant's allowed URL patterns
 - `merchant_reference` unique per merchant (returns `409` on duplicate)
+
+`next_action` is reserved for a future 3DS challenge and is always `null` in v1. Live-mode
+checkout is not available in v1, so `livemode` is always `false`.
 
 #### `GET /v1/checkout-sessions/{id}`
 

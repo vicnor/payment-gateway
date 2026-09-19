@@ -352,7 +352,8 @@ public class CheckoutSessionService {
                 s.getExpiresAt(),
                 s.getCreatedAt(),
                 Boolean.TRUE.equals(s.getLivemode()),
-                s.getPaymentId());
+                s.getPaymentId(),
+                null);
     }
 
     private String checkoutUrl(CheckoutSessionItem item, String secret) {

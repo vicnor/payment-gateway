@@ -34,12 +34,15 @@
     <bouncycastle.version>1.80</bouncycastle.version>
     <wiremock.version>3.9.2</wiremock.version>
     <mockito.version>5.17.0</mockito.version>
+    <openapi-generator.version>7.22.0</openapi-generator.version>
+    <openapi-request-validator.version>3.0.0</openapi-request-validator.version>
 
     <!-- Plugin versions -->
     <spotless.version>3.6.0</spotless.version>
     <google-java-format.version>1.35.0</google-java-format.version>
     <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
     <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+    <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
     <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
     <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
   </properties>
@@ -93,8 +96,27 @@
         <artifactId>wiremock-standalone</artifactId>
         <version>${wiremock.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.atlassian.oai</groupId>
+        <artifactId>openapi-request-validator-core</artifactId>
+        <version>${openapi-request-validator.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <dependencies>
+    <!-- Required as an explicit Java agent by every test JVM on Java 25. -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
   <build>
     <pluginManagement>
@@ -124,11 +146,16 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>${maven-dependency-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${maven-surefire-plugin.version}</version>
           <configuration>
             <!-- Mockito's inline mock maker must be loaded explicitly on Java 25. -->
-            <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+            <argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -136,13 +163,30 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${maven-failsafe-plugin.version}</version>
           <configuration>
-            <argLine>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</argLine>
+            <argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.openapitools</groupId>
+          <artifactId>openapi-generator-maven-plugin</artifactId>
+          <version>${openapi-generator.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>resolve-test-dependency-paths</id>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
