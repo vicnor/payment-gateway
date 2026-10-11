@@ -102,6 +102,7 @@ public class CheckoutSessionService {
         item.setSessionSecretHash("sha256:" + sha256(secret));
         item.setIdempotencyStorageKey(context.storageKey());
         item.setMerchantId(principal.merchantId());
+        item.setMerchantName(merchant.name());
         item.setMerchantReference(request.merchantReference());
         item.setAmount(request.amount());
         item.setCurrency(request.currency());

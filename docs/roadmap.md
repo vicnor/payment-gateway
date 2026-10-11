@@ -313,7 +313,7 @@ Establish the machine-readable public contract after both v1 Merchant API aggreg
 - The specification matches controller integration tests and `docs/architecture/api.md`
 - CI validates the specification and fails on invalid or incompatible contract changes
 
-### 5.4 Checkout API for the browser
+### ✅ 5.4 Checkout API for the browser
 
 **Done when:**
 
@@ -321,7 +321,7 @@ Establish the machine-readable public contract after both v1 Merchant API aggreg
   browser-safe shape
 - `POST /checkout/{id}/complete` validates secret, calls payment-service, transitions session
   to COMPLETED or leaves it IN_PROGRESS (depending on outcome), returns `{ status, payment_id,
-redirect_url }`
+  redirect_url }`
 - `POST /checkout/{id}/cancel` transitions session to CANCELLED
 - Session state transitions use DynamoDB conditional writes for safety
 - Tests cover: secret mismatch, expired session, idempotent complete (retry posts same token →

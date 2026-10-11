@@ -48,6 +48,7 @@ import software.amazon.awssdk.services.kms.KmsClient;
         webEnvironment = WebEnvironment.RANDOM_PORT)
 @TestPropertySource(
         properties = {
+            "gateway.token.session-secret.enabled=false",
             "gateway.token.rate-limit.max-attempts=3",
             "gateway.token.rate-limit.window-seconds=60"
         })

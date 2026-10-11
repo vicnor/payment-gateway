@@ -61,6 +61,11 @@ public class DetokenizationService {
      * @throws ConflictException if the token has already been used
      */
     public DetokenizeResult detokenize(String tokenId, String callerId) {
+        return detokenize(tokenId, callerId, null, null);
+    }
+
+    public DetokenizeResult detokenize(
+            String tokenId, String callerId, String expectedSessionId, String expectedMerchantId) {
         TokenItem token =
                 tokenStore
                         .findById(tokenId)
@@ -68,6 +73,15 @@ public class DetokenizationService {
 
         if (token.getExpiresAt() <= clock.instant().getEpochSecond()) {
             throw new NotFoundException("Token", tokenId);
+        }
+
+        if (expectedSessionId != null && !expectedSessionId.equals(token.getSessionId())) {
+            throw new ConflictException(
+                    "token_session_mismatch", "Token does not belong to this checkout session.");
+        }
+        if (expectedMerchantId != null && !expectedMerchantId.equals(token.getMerchantId())) {
+            throw new ConflictException(
+                    "token_session_mismatch", "Token does not belong to this merchant.");
         }
 
         try {

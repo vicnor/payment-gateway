@@ -10,6 +10,9 @@ gateway:
       endpoint: http://localhost:4566
       key-id: alias/token-service-dev
   token:
+    session-secret:
+      checkout-service-base-url: http://localhost:8100
+      internal-token: dev-secret-token
     internal:
       callers:
         - id: payment-service

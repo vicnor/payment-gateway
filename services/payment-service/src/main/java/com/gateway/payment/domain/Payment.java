@@ -39,6 +39,9 @@ public class Payment {
     @Column(name = "checkout_session_id", length = 40, nullable = false)
     private String checkoutSessionId;
 
+    @Column(name = "completion_attempt_id", length = 80, unique = true)
+    private String completionAttemptId;
+
     @Column(name = "merchant_id", length = 40, nullable = false)
     private String merchantId;
 
@@ -115,8 +118,35 @@ public class Payment {
             PaymentStatus status,
             PaymentMethodDetails paymentMethodDetails,
             Map<String, Object> metadata) {
+        this(
+                id,
+                externalId,
+                null,
+                checkoutSessionId,
+                merchantId,
+                merchantReference,
+                amount,
+                currency,
+                status,
+                paymentMethodDetails,
+                metadata);
+    }
+
+    public Payment(
+            UUID id,
+            String externalId,
+            String completionAttemptId,
+            String checkoutSessionId,
+            String merchantId,
+            String merchantReference,
+            Long amount,
+            String currency,
+            PaymentStatus status,
+            PaymentMethodDetails paymentMethodDetails,
+            Map<String, Object> metadata) {
         this.id = id;
         this.externalId = externalId;
+        this.completionAttemptId = completionAttemptId;
         this.checkoutSessionId = checkoutSessionId;
         this.merchantId = merchantId;
         this.merchantReference = merchantReference;
@@ -152,6 +182,10 @@ public class Payment {
 
     public String getCheckoutSessionId() {
         return checkoutSessionId;
+    }
+
+    public String getCompletionAttemptId() {
+        return completionAttemptId;
     }
 
     public String getMerchantId() {

@@ -11,3 +11,9 @@ gateway:
       key-id: alias/checkout-idempotency-dev
   checkout:
     base-url: http://localhost:3000
+    payment-service:
+      base-url: http://localhost:8102
+      internal-token: dev-secret-checkout
+    internal-callers:
+      - id: token-service
+        secret: dev-secret-token

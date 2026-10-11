@@ -56,7 +56,8 @@ import software.amazon.awssdk.services.kms.KmsClient;
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest(
         classes = TokenServiceApplication.class,
-        webEnvironment = WebEnvironment.RANDOM_PORT)
+        webEnvironment = WebEnvironment.RANDOM_PORT,
+        properties = "gateway.token.session-secret.enabled=false")
 class TokenizeIT extends AbstractDynamoKmsIT {
 
     private static final String TEST_PAN = "4242424242424242";

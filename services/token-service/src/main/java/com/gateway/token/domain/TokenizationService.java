@@ -57,6 +57,10 @@ public class TokenizationService {
      * @return a {@link TokenResult} with only the five PCI-safe fields
      */
     public TokenResult tokenize(String sessionId, TokenizeRequest request) {
+        return tokenize(sessionId, null, request);
+    }
+
+    public TokenResult tokenize(String sessionId, String merchantId, TokenizeRequest request) {
         // 1. Validate and detect brand; CVV is checked here and goes no further
         CardBrand brand = cardValidator.validate(request);
         String last4 = request.cardNumber().substring(request.cardNumber().length() - 4);
@@ -97,6 +101,7 @@ public class TokenizationService {
         TokenItem tokenItem = new TokenItem();
         tokenItem.setToken(tokenId);
         tokenItem.setSessionId(sessionId);
+        tokenItem.setMerchantId(merchantId);
         tokenItem.setEncryptedCardData(encrypted.encryptedCardData());
         tokenItem.setDataKeyId(dataKeyId);
         tokenItem.setCard(cardAttr);

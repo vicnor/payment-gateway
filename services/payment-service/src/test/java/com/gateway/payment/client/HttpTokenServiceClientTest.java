@@ -152,6 +152,26 @@ class HttpTokenServiceClientTest {
     }
 
     @Test
+    void preservesSessionMismatchConflictCode() {
+        stubFor(
+                post(urlEqualTo(DETOKENIZE_URL))
+                        .willReturn(
+                                aResponse()
+                                        .withStatus(409)
+                                        .withHeader(
+                                                "Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                                        .withBody(
+                                                "{\"error\":{\"type\":\"conflict_error\","
+                                                        + "\"code\":\"token_session_mismatch\","
+                                                        + "\"message\":\"Token does not belong to this checkout session.\"}}")));
+
+        assertThatThrownBy(() -> client.detokenize(TOKEN))
+                .isInstanceOf(ConflictException.class)
+                .extracting("code")
+                .isEqualTo("token_session_mismatch");
+    }
+
+    @Test
     void throwsUnavailableOnServerError() {
         stubFor(post(urlEqualTo(DETOKENIZE_URL)).willReturn(aResponse().withStatus(500)));
 

@@ -21,4 +21,8 @@ public interface TokenServiceClient {
      *     unreachable
      */
     DetokenizeData detokenize(String token);
+
+    default DetokenizeData detokenize(String token, String checkoutSessionId, String merchantId) {
+        return detokenize(token);
+    }
 }

@@ -58,8 +58,14 @@ public class PaymentAuthorizationService {
      *     (503)
      */
     public PaymentResponse charge(CreatePaymentRequest request) {
+        if (request.completionAttemptId() != null && !request.completionAttemptId().isBlank()) {
+            Payment existing = writer.findByCompletionAttemptId(request.completionAttemptId());
+            if (existing != null) return PaymentMapper.toResponse(existing);
+        }
         // Step 1 — detokenize (no DB transaction open)
-        DetokenizeData card = tokenClient.detokenize(request.token());
+        DetokenizeData card =
+                tokenClient.detokenize(
+                        request.token(), request.checkoutSessionId(), request.merchantId());
 
         // Step 2 — call acquirer and measure duration (no DB transaction open)
         String acquirerReference = "pay_" + UlidCreator.getUlid();
@@ -85,6 +91,7 @@ public class PaymentAuthorizationService {
         Payment payment =
                 writer.persist(
                         request.checkoutSessionId(),
+                        request.completionAttemptId(),
                         request.merchantId(),
                         request.merchantReference(),
                         request.amount(),

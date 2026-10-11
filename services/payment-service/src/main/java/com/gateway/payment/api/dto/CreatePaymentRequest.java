@@ -14,6 +14,7 @@ import java.util.Map;
  * obtained a single-use token from token-service.
  */
 public record CreatePaymentRequest(
+        String completionAttemptId,
         @NotBlank String checkoutSessionId,
         @NotBlank String merchantId,
         @NotNull @Min(1) Long amount,
