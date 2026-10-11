@@ -76,6 +76,7 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
     static void properties(DynamicPropertyRegistry registry) {
         registry.add("shared.security.merchant-service.base-url", WIREMOCK::baseUrl);
         registry.add("gateway.checkout.base-url", () -> "https://checkout.test");
+        registry.add("gateway.checkout.payment-service.base-url", WIREMOCK::baseUrl);
         registry.add("gateway.aws.kms.key-id", () -> "alias/checkout-idempotency-test");
     }
 
@@ -189,6 +190,96 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
                             assertThat(String.valueOf(item.getEncryptedSecret()))
                                     .doesNotContain(secret);
                         });
+    }
+
+    @Test
+    void browserLoadsCompletesAndReplaysSameToken() throws Exception {
+        ResponseEntity<String> created =
+                post(
+                        "/v1/checkout-sessions",
+                        UUID.randomUUID().toString(),
+                        validBody("order-browser-flow"));
+        JsonNode createdBody = mapper.readTree(created.getBody());
+        String id = createdBody.path("id").asText();
+        String secret = createdBody.path("url").asText().split("\\?k=", 2)[1];
+        HttpHeaders browserHeaders = new HttpHeaders();
+        browserHeaders.set("X-Checkout-Session-Secret", secret);
+
+        ResponseEntity<String> details =
+                rest.exchange(
+                        "/checkout/" + id + "/session-details",
+                        HttpMethod.GET,
+                        new HttpEntity<>(browserHeaders),
+                        String.class);
+        assertThat(details.getStatusCode().value()).isEqualTo(200);
+        assertThat(details.getHeaders().getCacheControl()).isEqualTo("no-store");
+        assertThat(mapper.readTree(details.getBody()).path("merchant").path("name").asText())
+                .isEqualTo("Test");
+        assertThat(sessions.getItem(Key.builder().partitionValue(id).build()).getStatus())
+                .isEqualTo("IN_PROGRESS");
+
+        stubFor(
+                WireMock.post(WireMock.urlEqualTo("/internal/v1/payments"))
+                        .willReturn(
+                                aResponse()
+                                        .withHeader("Content-Type", "application/json")
+                                        .withBody(
+                                                """
+                                                {"id":"pay_01ARZ3NDEKTSV4RRFFQ69G5FAV","object":"payment","status":"CAPTURED"}
+                                                """)));
+        browserHeaders.setContentType(MediaType.APPLICATION_JSON);
+        String token = "tok_01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        HttpEntity<String> completion =
+                new HttpEntity<>("{\"token\":\"" + token + "\"}", browserHeaders);
+        ResponseEntity<String> first =
+                rest.exchange(
+                        "/checkout/" + id + "/complete", HttpMethod.POST, completion, String.class);
+        ResponseEntity<String> replay =
+                rest.exchange(
+                        "/checkout/" + id + "/complete", HttpMethod.POST, completion, String.class);
+
+        assertThat(first.getStatusCode().value()).withFailMessage(first.getBody()).isEqualTo(200);
+        assertThat(mapper.readTree(first.getBody()).path("status").asText()).isEqualTo("COMPLETED");
+        assertThat(mapper.readTree(replay.getBody())).isEqualTo(mapper.readTree(first.getBody()));
+        WireMock.verify(1, WireMock.postRequestedFor(WireMock.urlEqualTo("/internal/v1/payments")));
+    }
+
+    @Test
+    void browserSecretMismatchAndExpiryAreDistinct() throws Exception {
+        ResponseEntity<String> created =
+                post(
+                        "/v1/checkout-sessions",
+                        UUID.randomUUID().toString(),
+                        validBody("order-browser-auth"));
+        JsonNode body = mapper.readTree(created.getBody());
+        String id = body.path("id").asText();
+        String secret = body.path("url").asText().split("\\?k=", 2)[1];
+
+        HttpHeaders wrong = new HttpHeaders();
+        wrong.set("X-Checkout-Session-Secret", "wrong");
+        ResponseEntity<String> unauthorized =
+                rest.exchange(
+                        "/checkout/" + id + "/session-details",
+                        HttpMethod.GET,
+                        new HttpEntity<>(wrong),
+                        String.class);
+        assertThat(unauthorized.getStatusCode().value()).isEqualTo(401);
+
+        CheckoutSessionItem item = sessions.getItem(Key.builder().partitionValue(id).build());
+        item.setExpiresAt(0L);
+        sessions.updateItem(item);
+        HttpHeaders correct = new HttpHeaders();
+        correct.set("X-Checkout-Session-Secret", secret);
+        ResponseEntity<String> expired =
+                rest.exchange(
+                        "/checkout/" + id + "/session-details",
+                        HttpMethod.GET,
+                        new HttpEntity<>(correct),
+                        String.class);
+        assertThat(expired.getStatusCode().value()).isEqualTo(410);
+        assertThat(expired.getBody()).contains("checkout_session_expired");
+        assertThat(sessions.getItem(Key.builder().partitionValue(id).build()).getStatus())
+                .isEqualTo("EXPIRED");
     }
 
     @Test

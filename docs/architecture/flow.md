@@ -97,9 +97,10 @@ deduplicate by `event_id` (in the body); they should too.
 - Merchant receives `checkout.expired` webhook
 
 ### Acquirer times out
-- payment-service uses an aggressive client timeout (~10s for test-acquirer, would be longer
-  for real acquirers)
-- On timeout: payment status → `FAILED` with `failure_code: acquirer_timeout`
+- checkout-service bounds the internal payment call; payment-service separately bounds its
+  acquirer call
+- On an unavailable or indeterminate dependency: the browser receives `503` and the checkout
+  session remains `IN_PROGRESS`
 - Future hardening: payment reconciliation via acquirer batch reports
 
 ### Consumer presses cancel button
@@ -113,6 +114,17 @@ deduplicate by `event_id` (in the body); they should too.
 - token-service marks `used: true` on detokenization
 - Second detokenize attempt → `409 Conflict`, error `token_already_used`
 - payment-service surfaces this as `failure_code: token_already_used`
+
+Tokens are bound to the authenticated checkout session and merchant when minted. Detokenization
+checks that binding before atomically marking the token used; cross-session substitution returns
+`409 token_session_mismatch` without consuming the token.
+
+### Completion is retried
+- checkout-service derives a stable completion-attempt id from the session and token
+- an active attempt holds a 60-second DynamoDB lease; concurrent requests receive `409` and
+  `Retry-After: 1`
+- payment-service persists the attempt id with a unique constraint, so a lost checkout-service
+  response can recover the already-created payment without authorizing it again
 
 ### Idempotency key collision
 - Same key, same body → return cached response with `Idempotent-Replay: true` header

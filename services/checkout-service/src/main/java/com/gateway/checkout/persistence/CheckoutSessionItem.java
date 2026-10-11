@@ -18,12 +18,25 @@ public class CheckoutSessionItem {
             sessionSecretHash,
             idempotencyStorageKey,
             merchantId,
+            merchantName,
             merchantReference,
             currency,
             status;
     private String paymentId, returnUrl, cancelUrl, selectedPaymentMethod, description, locale;
-    private Long amount, createdAt, updatedAt, completedAt, expiresAt, deleteAt;
-    private Boolean livemode;
+    private String activeCompletionAttemptId, activeCompletionTokenHash;
+    private String lastCompletionTokenHash,
+            lastCompletionStatus,
+            lastCompletionPaymentId,
+            lastFailureCode,
+            lastFailureMessage;
+    private Long amount,
+            createdAt,
+            updatedAt,
+            completedAt,
+            expiresAt,
+            deleteAt,
+            completionLeaseUntil;
+    private Boolean livemode, lastRetryAllowed;
     private List<String> availablePaymentMethods;
     private CustomerAttribute customer;
     private BrandingAttribute branding;
@@ -65,6 +78,15 @@ public class CheckoutSessionItem {
 
     public void setMerchantId(String v) {
         merchantId = v;
+    }
+
+    @DynamoDbAttribute("merchant_name")
+    public String getMerchantName() {
+        return merchantName;
+    }
+
+    public void setMerchantName(String v) {
+        merchantName = v;
     }
 
     @DynamoDbAttribute("merchant_reference")
@@ -246,5 +268,86 @@ public class CheckoutSessionItem {
 
     public void setDeleteAt(Long v) {
         deleteAt = v;
+    }
+
+    @DynamoDbAttribute("active_completion_attempt_id")
+    public String getActiveCompletionAttemptId() {
+        return activeCompletionAttemptId;
+    }
+
+    public void setActiveCompletionAttemptId(String v) {
+        activeCompletionAttemptId = v;
+    }
+
+    @DynamoDbAttribute("active_completion_token_hash")
+    public String getActiveCompletionTokenHash() {
+        return activeCompletionTokenHash;
+    }
+
+    public void setActiveCompletionTokenHash(String v) {
+        activeCompletionTokenHash = v;
+    }
+
+    @DynamoDbAttribute("completion_lease_until")
+    public Long getCompletionLeaseUntil() {
+        return completionLeaseUntil;
+    }
+
+    public void setCompletionLeaseUntil(Long v) {
+        completionLeaseUntil = v;
+    }
+
+    @DynamoDbAttribute("last_completion_token_hash")
+    public String getLastCompletionTokenHash() {
+        return lastCompletionTokenHash;
+    }
+
+    public void setLastCompletionTokenHash(String v) {
+        lastCompletionTokenHash = v;
+    }
+
+    @DynamoDbAttribute("last_completion_status")
+    public String getLastCompletionStatus() {
+        return lastCompletionStatus;
+    }
+
+    public void setLastCompletionStatus(String v) {
+        lastCompletionStatus = v;
+    }
+
+    @DynamoDbAttribute("last_completion_payment_id")
+    public String getLastCompletionPaymentId() {
+        return lastCompletionPaymentId;
+    }
+
+    public void setLastCompletionPaymentId(String v) {
+        lastCompletionPaymentId = v;
+    }
+
+    @DynamoDbAttribute("last_failure_code")
+    public String getLastFailureCode() {
+        return lastFailureCode;
+    }
+
+    public void setLastFailureCode(String v) {
+        lastFailureCode = v;
+    }
+
+    @DynamoDbAttribute("last_failure_message")
+    public String getLastFailureMessage() {
+        return lastFailureMessage;
+    }
+
+    public void setLastFailureMessage(String v) {
+        lastFailureMessage = v;
+    }
+
+    @DynamoDbAttribute("last_retry_allowed")
+    public Boolean getLastRetryAllowed() {
+        return lastRetryAllowed;
+    }
+
+    public void setLastRetryAllowed(Boolean v) {
+        lastRetryAllowed = v;
     }
 }

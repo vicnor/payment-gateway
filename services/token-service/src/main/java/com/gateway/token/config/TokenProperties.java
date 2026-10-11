@@ -19,6 +19,9 @@ public record TokenProperties(
         InternalProperties internal) {
 
     public TokenProperties {
+        if (sessionSecret == null) {
+            sessionSecret = new SessionSecretProperties(false, "http://localhost:8100", "");
+        }
         if (internal == null) {
             internal = new InternalProperties(List.of());
         }
@@ -30,12 +33,9 @@ public record TokenProperties(
     /** CORS configuration for the browser-facing checkout endpoint. */
     public record CorsProperties(List<String> allowedOrigins) {}
 
-    /**
-     * Session-secret authentication stub.
-     *
-     * <p>Disabled by default until checkout-service (Phase 5) is built and can validate secrets.
-     */
-    public record SessionSecretProperties(boolean enabled) {}
+    /** Configuration for validating browser session secrets through checkout-service. */
+    public record SessionSecretProperties(
+            boolean enabled, String checkoutServiceBaseUrl, String internalToken) {}
 
     /**
      * Rate-limiting config for {@code POST /checkout/{session_id}/tokens}.

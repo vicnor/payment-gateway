@@ -40,7 +40,7 @@ class RateLimitFilterTest {
                 new TokenProperties(
                         1800,
                         new CorsProperties(List.of("http://localhost:3000")),
-                        new SessionSecretProperties(false),
+                        new SessionSecretProperties(false, "http://localhost:8100", ""),
                         new RateLimitProperties(100, 1800),
                         new InternalProperties(List.of()));
         filter = new RateLimitFilter(rateLimitStore, tokenProperties, objectMapper);

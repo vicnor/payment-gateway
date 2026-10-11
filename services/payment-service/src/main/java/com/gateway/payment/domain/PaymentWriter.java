@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -76,6 +77,7 @@ public class PaymentWriter {
     @Transactional
     public Payment persist(
             String checkoutSessionId,
+            String completionAttemptId,
             String merchantId,
             String merchantReference,
             long amount,
@@ -101,6 +103,7 @@ public class PaymentWriter {
                 new Payment(
                         UUID.randomUUID(),
                         "pay_" + UlidCreator.getUlid(),
+                        completionAttemptId,
                         checkoutSessionId,
                         merchantId,
                         merchantReference,
@@ -171,6 +174,11 @@ public class PaymentWriter {
                         buildEventEnvelope(eventType, payment)));
 
         return payment;
+    }
+
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+    public Payment findByCompletionAttemptId(String attemptId) {
+        return paymentRepo.findByCompletionAttemptId(attemptId).orElse(null);
     }
 
     private Map<String, Object> buildResponsePayload(AcquireResult result) {

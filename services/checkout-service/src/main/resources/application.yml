@@ -27,8 +27,21 @@ gateway:
     session-lifetime: 30m
     retention: 30d
     maximum-amount: 99999999
+    payment-service:
+      base-url: "${GATEWAY_PAYMENT_SERVICE_URL:http://localhost:8102}"
+      internal-token: "${CHECKOUT_SERVICE_INTERNAL_SECRET:}"
+    allowed-origins:
+      - "${GATEWAY_CHECKOUT_ORIGIN:https://checkout.yourgateway.com}"
+      - "${GATEWAY_CHECKOUT_LOCAL_ORIGIN:http://localhost:3000}"
+    internal-callers:
+      - id: token-service
+        secret: "${TOKEN_SERVICE_INTERNAL_SECRET:}"
 
 shared:
   security:
     merchant-service:
       base-url: "${GATEWAY_MERCHANT_SERVICE_URL:http://localhost:8101}"
+    skip-paths:
+      - /actuator/**
+      - /internal/**
+      - /checkout/**

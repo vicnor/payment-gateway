@@ -36,7 +36,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(TokenController.class)
+@WebMvcTest(
+        value = TokenController.class,
+        properties = "gateway.token.session-secret.enabled=false")
 @Import(TokenControllerTest.TestConfig.class)
 class TokenControllerTest {
 
@@ -55,7 +57,7 @@ class TokenControllerTest {
             return new TokenProperties(
                     1800,
                     new CorsProperties(List.of("http://localhost:3000")),
-                    new SessionSecretProperties(false),
+                    new SessionSecretProperties(false, "http://localhost:8100", ""),
                     new RateLimitProperties(100, 1800),
                     new InternalProperties(List.of()));
         }

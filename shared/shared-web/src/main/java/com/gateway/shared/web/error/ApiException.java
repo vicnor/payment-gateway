@@ -8,6 +8,7 @@ public abstract sealed class ApiException extends RuntimeException
                 ConflictException,
                 IdempotencyConflictException,
                 AuthenticationException,
+                GoneException,
                 PermissionException,
                 RateLimitException,
                 AcquirerUnavailableException,

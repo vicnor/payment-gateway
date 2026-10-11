@@ -29,11 +29,17 @@ public class HttpTokenServiceClient implements TokenServiceClient {
 
     @Override
     public DetokenizeData detokenize(String token) {
+        return detokenize(token, null, null);
+    }
+
+    @Override
+    public DetokenizeData detokenize(String token, String checkoutSessionId, String merchantId) {
         try {
             DetokenizeResponse response =
                     restClient
                             .post()
                             .uri("/internal/v1/tokens/{token}/detokenize", token)
+                            .body(new DetokenizeRequest(checkoutSessionId, merchantId))
                             .retrieve()
                             .body(DetokenizeResponse.class);
             if (response == null) {
@@ -52,6 +58,11 @@ public class HttpTokenServiceClient implements TokenServiceClient {
                 throw new NotFoundException("Token", token);
             }
             if (ex.getStatusCode() == HttpStatus.CONFLICT) {
+                if (ex.getResponseBodyAsString().contains("token_session_mismatch")) {
+                    throw new ConflictException(
+                            "token_session_mismatch",
+                            "Token does not belong to this checkout session.");
+                }
                 throw new ConflictException("token_already_used", "Token has already been used.");
             }
             log.warn("token-service detokenize error: status={}", ex.getStatusCode(), ex);
@@ -72,4 +83,6 @@ public class HttpTokenServiceClient implements TokenServiceClient {
             String last4,
             String country,
             String funding) {}
+
+    private record DetokenizeRequest(String checkoutSessionId, String merchantId) {}
 }

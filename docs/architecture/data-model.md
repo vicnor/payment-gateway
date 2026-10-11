@@ -28,6 +28,7 @@ and the corresponding migration file in lockstep.
   "session_id":              "cs_01HQX2YK3M4N5P6Q7R8S9T0V1W",
   "session_secret_hash":     "sha256:b3c9...",
   "merchant_id":             "mer_01HQX...",
+  "merchant_name":           "Acme Ltd.",
   "merchant_reference":      "order-2026-00472",
   "amount":                  19900,
   "currency":                "DKK",
@@ -55,6 +56,12 @@ and the corresponding migration file in lockstep.
   "delete_at":               1750752000
 }
 ```
+
+While authorization is running, the item also contains an opaque completion-attempt id, a
+SHA-256 token digest, and a 60-second lease. The token itself is never stored by checkout-service.
+The last browser-safe completion result is retained so a retry with the same token returns the
+same outcome. Failed payments remain attempts on an `IN_PROGRESS` session; only a captured
+payment populates the session's terminal `payment_id`.
 
 **State machine:**
 
@@ -141,6 +148,7 @@ CREATE TABLE payments (
     id                      UUID PRIMARY KEY,
     external_id             VARCHAR(40) UNIQUE NOT NULL,        -- pay_01HQX...
     checkout_session_id     VARCHAR(40) NOT NULL,               -- soft FK to dynamo
+    completion_attempt_id   VARCHAR(80),                        -- browser retry identity
     merchant_id             VARCHAR(40) NOT NULL,
     merchant_reference      VARCHAR(255) NOT NULL,
 
@@ -169,6 +177,10 @@ CREATE TABLE payments (
 
     version                 INTEGER NOT NULL DEFAULT 0          -- JPA optimistic lock
 );
+
+CREATE UNIQUE INDEX ux_payments_completion_attempt
+    ON payments (completion_attempt_id)
+    WHERE completion_attempt_id IS NOT NULL;
 
 CREATE INDEX idx_payments_merchant_created  ON payments (merchant_id, created_at DESC);
 CREATE INDEX idx_payments_checkout_session  ON payments (checkout_session_id);

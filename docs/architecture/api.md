@@ -328,12 +328,22 @@ and `brand` so the page can show "Pay with Visa ••4242" before confirmation.
 ```json
 {
   "status":         "FAILED",
+  "payment_id":     "pay_01HQX...",
   "failure_code":   "card_declined",
   "failure_message":"Your card was declined.",
   "retry_allowed":  true,
   "redirect_url":   null
 }
 ```
+
+Browser POSTs do not use the Merchant API's `Idempotency-Key` header. Completion identity is
+derived from the checkout session and opaque token. Reposting the same token returns the same
+safe outcome. A concurrent completion returns `409 completion_in_progress` with `Retry-After: 1`.
+
+An authenticated expired session returns `410 checkout_session_expired`. Unknown sessions and
+incorrect session secrets deliberately return the same generic `401` response. Dependency
+failures return `503` and leave the session `IN_PROGRESS`; invalid or cross-session tokens are
+reported as request errors rather than card declines.
 
 #### `POST /checkout/{session_id}/cancel`
 

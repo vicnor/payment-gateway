@@ -3,8 +3,10 @@ package com.gateway.token.api;
 import com.gateway.token.api.dto.TokenizeRequest;
 import com.gateway.token.api.dto.TokenizeResponse;
 import com.gateway.token.api.mapper.TokenizeMapper;
+import com.gateway.token.config.SessionSecretFilter;
 import com.gateway.token.domain.TokenResult;
 import com.gateway.token.domain.TokenizationService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,8 +33,15 @@ public class TokenController {
     @PostMapping("/checkout/{sessionId}/tokens")
     @ResponseStatus(HttpStatus.CREATED)
     public TokenizeResponse tokenize(
-            @PathVariable String sessionId, @Valid @RequestBody TokenizeRequest request) {
-        TokenResult result = tokenizationService.tokenize(sessionId, request);
+            @PathVariable String sessionId,
+            @Valid @RequestBody TokenizeRequest request,
+            HttpServletRequest servletRequest) {
+        String merchantId =
+                (String) servletRequest.getAttribute(SessionSecretFilter.MERCHANT_ID_ATTRIBUTE);
+        TokenResult result =
+                merchantId == null
+                        ? tokenizationService.tokenize(sessionId, request)
+                        : tokenizationService.tokenize(sessionId, merchantId, request);
         return TokenizeMapper.toResponse(result);
     }
 }

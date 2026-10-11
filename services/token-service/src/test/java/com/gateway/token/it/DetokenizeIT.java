@@ -61,6 +61,7 @@ import software.amazon.awssdk.services.kms.KmsClient;
         webEnvironment = WebEnvironment.RANDOM_PORT)
 @TestPropertySource(
         properties = {
+            "gateway.token.session-secret.enabled=false",
             "gateway.token.internal.callers[0].id=payment-service",
             "gateway.token.internal.callers[0].secret=it-secret"
         })
