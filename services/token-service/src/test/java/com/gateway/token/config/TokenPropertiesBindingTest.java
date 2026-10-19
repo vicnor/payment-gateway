@@ -21,9 +21,7 @@ class TokenPropertiesBindingTest {
                                 "gateway.token.session-secret.internal-token", "service-secret"));
 
         TokenProperties properties =
-                new Binder(source)
-                        .bind("gateway.token", Bindable.of(TokenProperties.class))
-                        .get();
+                new Binder(source).bind("gateway.token", Bindable.of(TokenProperties.class)).get();
 
         assertThat(properties.sessionSecret().enabled()).isTrue();
         assertThat(properties.sessionSecret().checkoutServiceBaseUrl())

@@ -43,6 +43,8 @@ public class CheckoutIdempotencyStore implements IdempotencyStore {
     private final String kmsKeyId;
     private final ObjectMapper mapper;
     private final CheckoutProperties properties;
+    private final com.gateway.checkout.event.CheckoutEventFactory events;
+    private final DynamoDbTable<CheckoutOutboxItem> outbox;
 
     public CheckoutIdempotencyStore(
             software.amazon.awssdk.services.dynamodb.DynamoDbClient dynamo,
@@ -54,7 +56,9 @@ public class CheckoutIdempotencyStore implements IdempotencyStore {
             KmsClient kms,
             AwsProperties aws,
             ObjectMapper mapper,
-            CheckoutProperties properties) {
+            CheckoutProperties properties,
+            com.gateway.checkout.event.CheckoutEventFactory events,
+            @Qualifier("checkoutOutboxTable") DynamoDbTable<CheckoutOutboxItem> outbox) {
         this.dynamo = dynamo;
         this.enhanced = enhanced;
         this.sessions = sessions;
@@ -64,6 +68,8 @@ public class CheckoutIdempotencyStore implements IdempotencyStore {
         this.kmsKeyId = aws.kms().keyId();
         this.mapper = mapper;
         this.properties = properties;
+        this.events = events;
+        this.outbox = outbox;
     }
 
     @Override
@@ -271,7 +277,16 @@ public class CheckoutIdempotencyStore implements IdempotencyStore {
                                                             IdempotencyKeyItem.class)
                                                     .item(completed)
                                                     .conditionExpression(ownsClaim)
-                                                    .build()));
+                                                    .build())
+                                    .addPutItem(
+                                            outbox,
+                                            events.create(
+                                                    session,
+                                                    com.gateway.shared.events.EventType
+                                                            .CHECKOUT_CREATED,
+                                                    "CREATED",
+                                                    null,
+                                                    session.getCreatedAt())));
             context.markCompleted();
         } catch (TransactionCanceledException ex) {
             if (ex.cancellationReasons().size() > 1

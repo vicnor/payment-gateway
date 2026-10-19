@@ -136,6 +136,51 @@ class PaymentAuthorizationIT extends AbstractPostgresIT {
     // -------------------------------------------------------------------------
 
     @Test
+    void lookupFindsPersistedAttemptAndChecksSessionAndMerchant() {
+        String token = "tok_lookup_00000000000000000001";
+        stubDetokenizeSuccess(token);
+        stubAcquirerApproved();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Caller-Service", CALLER_ID);
+        headers.set("X-Internal-Token", CALLER_SECRET);
+        String body =
+                validBody(token, "lookup-order")
+                        .replace(
+                                "\"amount\":",
+                                "\"completion_attempt_id\": \"ca_lookup\", \"amount\":");
+        var created =
+                restTemplate.postForEntity(
+                        "/internal/v1/payments", new HttpEntity<>(body, headers), String.class);
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        String path =
+                "/internal/v1/payment-attempts/ca_lookup?checkout_session_id=cs_it_test_session_0000000001&merchant_id=mer_it_test_merchant_000001";
+        var found =
+                restTemplate.exchange(
+                        path,
+                        org.springframework.http.HttpMethod.GET,
+                        new HttpEntity<>(headers),
+                        String.class);
+        assertThat(found.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(found.getBody()).isEqualTo(created.getBody());
+        for (String missing :
+                java.util.List.of(
+                        path.replace("ca_lookup", "ca_absent"),
+                        path.replace("cs_it_test_session_0000000001", "cs_other"),
+                        path.replace("mer_it_test_merchant_000001", "mer_other"))) {
+            assertThat(
+                            restTemplate
+                                    .exchange(
+                                            missing,
+                                            org.springframework.http.HttpMethod.GET,
+                                            new HttpEntity<>(headers),
+                                            String.class)
+                                    .getStatusCode())
+                    .isEqualTo(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Test
     void approvedCardCreatesAllDbRowsAndReturnsCaptured() {
         String token = "tok_approve_0000000000000000001";
         stubDetokenizeSuccess(token);

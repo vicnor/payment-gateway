@@ -16,6 +16,30 @@ public final class HttpPaymentClient implements PaymentClient {
     }
 
     @Override
+    public java.util.Optional<PaymentResult> find(
+            String attemptId, String sessionId, String merchantId) {
+        try {
+            PaymentResult result =
+                    client.get()
+                            .uri(
+                                    builder ->
+                                            builder.path("/internal/v1/payment-attempts/{id}")
+                                                    .queryParam("checkout_session_id", sessionId)
+                                                    .queryParam("merchant_id", merchantId)
+                                                    .build(attemptId))
+                            .retrieve()
+                            .body(PaymentResult.class);
+            if (result == null) throw unavailable();
+            return java.util.Optional.of(result);
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.NOT_FOUND) return java.util.Optional.empty();
+            throw unavailable();
+        } catch (RestClientException ex) {
+            throw unavailable();
+        }
+    }
+
+    @Override
     public PaymentResult create(CreatePayment command) {
         try {
             PaymentResult result =

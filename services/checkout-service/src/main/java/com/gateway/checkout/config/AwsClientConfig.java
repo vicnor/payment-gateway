@@ -26,6 +26,24 @@ public class AwsClientConfig {
     }
 
     @Bean
+    public software.amazon.awssdk.services.sns.SnsClient snsClient() {
+        var builder =
+                software.amazon.awssdk.services.sns.SnsClient.builder()
+                        .region(Region.of(properties.region()))
+                        .credentialsProvider(credentialsProvider())
+                        .overrideConfiguration(
+                                c ->
+                                        c.apiCallTimeout(java.time.Duration.ofSeconds(10))
+                                                .apiCallAttemptTimeout(
+                                                        java.time.Duration.ofSeconds(3)));
+        if (properties.sns() != null
+                && properties.sns().endpoint() != null
+                && !properties.sns().endpoint().isBlank())
+            builder.endpointOverride(URI.create(properties.sns().endpoint()));
+        return builder.build();
+    }
+
+    @Bean
     public DynamoDbClient dynamoDbClient() {
         DynamoDbClientBuilder builder =
                 DynamoDbClient.builder()

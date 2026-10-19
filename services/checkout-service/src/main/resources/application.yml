@@ -1,4 +1,8 @@
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 3
   application:
     name: checkout-service
   jackson:
@@ -19,10 +23,16 @@ gateway:
     region: "${AWS_REGION:eu-north-1}"
     dynamodb:
       endpoint: "${GATEWAY_DYNAMODB_ENDPOINT:}"
+    sns:
+      endpoint: "${GATEWAY_SNS_ENDPOINT:}"
     kms:
       endpoint: "${GATEWAY_KMS_ENDPOINT:}"
       key-id: "${GATEWAY_CHECKOUT_KMS_KEY_ID:alias/checkout-idempotency-dev}"
   checkout:
+    workers:
+      enabled: true
+    outbox:
+      topic-arn: "${GATEWAY_CHECKOUT_EVENTS_TOPIC_ARN:}"
     base-url: "${GATEWAY_CHECKOUT_BASE_URL:https://checkout.yourgateway.com}"
     session-lifetime: 30m
     retention: 30d

@@ -104,4 +104,13 @@ public class PaymentAuthorizationService {
 
         return PaymentMapper.toResponse(payment);
     }
+
+    public PaymentResponse findAttempt(String attemptId, String sessionId, String merchantId) {
+        Payment payment = writer.findByCompletionAttemptId(attemptId);
+        if (payment == null
+                || !sessionId.equals(payment.getCheckoutSessionId())
+                || !merchantId.equals(payment.getMerchantId()))
+            throw new com.gateway.shared.web.error.NotFoundException("Payment attempt not found.");
+        return PaymentMapper.toResponse(payment);
+    }
 }

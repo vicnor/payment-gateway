@@ -373,6 +373,39 @@ PGPASSWORD=gateway psql -h localhost -U gateway -l
 
 ## Testcontainers note
 
+### Checkout outbox (task 5.5)
+
+Stop checkout-service before upgrading from 5.4, then run `make dev-bootstrap` and restart it.
+Bootstrap adds the worker indexes to existing tables, creates `checkout_outbox`, subscribes
+`checkout-events` to `webhook-dispatch`, and upgrades any retained 5.4 completion claims for
+background recovery. No table reset is required and historical events are not synthesized.
+
+The local profile supplies the SNS endpoint/topic. Outside local development set
+`GATEWAY_CHECKOUT_EVENTS_TOPIC_ARN` (and optionally `GATEWAY_SNS_ENDPOINT` for an emulator).
+Workers require the provisioned tables/indexes and service IAM permissions for DynamoDB
+transactions, reads, queries and updates, plus `sns:Publish` on the checkout topic. Recovery
+uses the existing checkout-service internal credentials for payment-service.
+
+Defaults: publication every 1 second, batches of 50, 30-second publisher claims, expiration
+every 30 seconds, recovery checks every 10 seconds with per-attempt backoff capped at 5 minutes,
+and overdue detection after 5 minutes. These workers use three scheduler threads so a stalled
+dependency does not block expiration. Set `gateway.checkout.workers.enabled=false` to disable
+workers in isolated tests. Configure thresholds under `gateway.checkout.outbox`, `.expiration`,
+and `.recovery` (see the workers' property annotations).
+
+Inspect structured `checkout.payment_resolution_overdue` / `checkout.payment_resolution_recovered`
+logs, and Micrometer's `checkout.payment_resolution.overdue`,
+`checkout.payment_resolution.oldest.seconds`, `outbox.lag.seconds`, `outbox.publish.count`, and
+`outbox.publish.errors`. IDs are log fields, never metric labels. Metrics are registered in-process;
+Prometheus export, dashboards, and actual notification delivery are task 8.3. Until then these
+signals do not proactively notify anyone. Missing payment results remain pending and require
+investigation; never manually mark them failed solely because a lease or deadline passed.
+
+Before Phase 6, events accumulate in SQS subject to its retention. A published outbox record is
+retained 30 days for diagnosis, but does not automatically replay messages that expired from SQS.
+
+### Test infrastructure
+
 In `shared-testing`, base classes spin up Postgres + LocalStack + DynamoDB containers and
 inject the endpoints into `@DynamicPropertySource`. Example:
 

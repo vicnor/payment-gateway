@@ -116,6 +116,7 @@ public class CheckoutSessionItem {
         currency = v;
     }
 
+    @DynamoDbSecondaryPartitionKey(indexNames = "status-expiry-index")
     @DynamoDbAttribute("status")
     public String getStatus() {
         return status;
@@ -252,6 +253,7 @@ public class CheckoutSessionItem {
         completedAt = v;
     }
 
+    @DynamoDbSecondarySortKey(indexNames = "status-expiry-index")
     @DynamoDbAttribute("expires_at")
     public Long getExpiresAt() {
         return expiresAt;
@@ -349,5 +351,28 @@ public class CheckoutSessionItem {
 
     public void setLastRetryAllowed(Boolean v) {
         lastRetryAllowed = v;
+    }
+
+    private String recoveryBucket;
+    private Long completionStartedAt;
+
+    @DynamoDbSecondaryPartitionKey(indexNames = "recovery-index")
+    @DynamoDbAttribute("recovery_bucket")
+    public String getRecoveryBucket() {
+        return recoveryBucket;
+    }
+
+    public void setRecoveryBucket(String v) {
+        recoveryBucket = v;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "recovery-index")
+    @DynamoDbAttribute("completion_started_at")
+    public Long getCompletionStartedAt() {
+        return completionStartedAt;
+    }
+
+    public void setCompletionStartedAt(Long v) {
+        completionStartedAt = v;
     }
 }

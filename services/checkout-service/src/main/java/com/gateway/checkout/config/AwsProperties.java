@@ -7,7 +7,8 @@ public record AwsProperties(
         String region,
         CredentialsProperties credentials,
         DynamoDbProperties dynamodb,
-        KmsProperties kms) {
+        KmsProperties kms,
+        DynamoDbProperties sns) {
 
     public record CredentialsProperties(String accessKey, String secretKey) {}
 

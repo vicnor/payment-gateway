@@ -74,6 +74,7 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
+        registry.add("gateway.checkout.workers.enabled", () -> "false");
         registry.add("shared.security.merchant-service.base-url", WIREMOCK::baseUrl);
         registry.add("gateway.checkout.base-url", () -> "https://checkout.test");
         registry.add("gateway.checkout.payment-service.base-url", WIREMOCK::baseUrl);
@@ -98,6 +99,7 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
 
     @BeforeAll
     void setup() {
+        create(outbox);
         create(sessions);
         create(idempotency);
         create(references);
@@ -108,6 +110,10 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
             kms.createAlias(r -> r.aliasName("alias/checkout-idempotency-test").targetKeyId(keyId));
         }
     }
+
+    @Autowired
+    @Qualifier("checkoutOutboxTable")
+    DynamoDbTable<com.gateway.checkout.persistence.CheckoutOutboxItem> outbox;
 
     @BeforeEach
     void resetMerchantService() {
@@ -165,6 +171,20 @@ class CheckoutSessionMerchantIT extends AbstractDynamoKmsIT {
         assertThat(replay.getHeaders().getFirst("Idempotent-Replay")).isEqualTo("true");
         assertThat(mapper.readTree(replay.getBody())).isEqualTo(mapper.readTree(first.getBody()));
         JsonNode body = mapper.readTree(first.getBody());
+        assertThat(
+                        outbox.scan().items().stream()
+                                .filter(
+                                        event ->
+                                                event.getPayload()
+                                                        .contains(body.path("id").asText()))
+                                .toList())
+                .singleElement()
+                .satisfies(
+                        event -> {
+                            assertThat(event.getPayload()).contains("checkout.created");
+                            assertThat(event.getPayload())
+                                    .doesNotContain("session_secret", "url", "token");
+                        });
         assertThat(body.path("next_action").isNull()).isTrue();
         assertThat(body.path("url").asText()).startsWith("https://checkout.test/checkout/cs_");
         assertThat(body.path("livemode").asBoolean()).isFalse();

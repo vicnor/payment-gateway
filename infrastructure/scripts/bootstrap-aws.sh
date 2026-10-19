@@ -54,6 +54,16 @@ else
   echo "  SNS subscription: payment-events → webhook-dispatch (already exists)"
 fi
 
+# Checkout uses the same dispatch queue; webhook consumption is implemented in Phase 6.
+CHECKOUT_TOPIC_ARN=$($SNS create-topic --name checkout-events | jq -r .TopicArn)
+$SNS subscribe --topic-arn "$CHECKOUT_TOPIC_ARN" --protocol sqs \
+  --notification-endpoint "$WEBHOOK_Q_ARN" >/dev/null
+QUEUE_POLICY=$(jq -cn --arg queue "$WEBHOOK_Q_ARN" --arg payment "$PAY_TOPIC_ARN" \
+  --arg checkout "$CHECKOUT_TOPIC_ARN" \
+  '{Version:"2012-10-17",Statement:[{Effect:"Allow",Principal:{Service:"sns.amazonaws.com"},Action:"sqs:SendMessage",Resource:$queue,Condition:{ArnEquals:{"aws:SourceArn":[$payment,$checkout]}}}]}')
+$SQS set-queue-attributes --queue-url "$WEBHOOK_Q_URL" \
+  --attributes "$(jq -cn --arg policy "$QUEUE_POLICY" '{Policy:$policy}')" >/dev/null
+
 # ---------------------------------------------------------------------------
 # KMS key + alias (idempotent: skip alias creation if key already resolves)
 # ---------------------------------------------------------------------------
@@ -137,6 +147,49 @@ create_dynamo_table checkout_sessions \
                       {\"AttributeName\":\"created_at\",\"KeyType\":\"RANGE\"}],
        \"Projection\":{\"ProjectionType\":\"ALL\"}}]"
 enable_ttl checkout_sessions delete_at
+
+# Add indexes to existing tables as well as fresh installs. Never reset local data.
+ensure_index() {
+  local table="$1" index="$2" partition="$3" sort="$4"
+  if $DDB describe-table --table-name "$table" | \
+    jq -e --arg index "$index" '.Table.GlobalSecondaryIndexes[]? | select(.IndexName == $index)' >/dev/null; then
+    return
+  fi
+  $DDB update-table --table-name "$table" \
+    --attribute-definitions "AttributeName=$partition,AttributeType=S" "AttributeName=$sort,AttributeType=N" \
+    --global-secondary-index-updates "$(jq -cn --arg index "$index" --arg pk "$partition" --arg sk "$sort" \
+      '[{Create:{IndexName:$index,KeySchema:[{AttributeName:$pk,KeyType:"HASH"},{AttributeName:$sk,KeyType:"RANGE"}],Projection:{ProjectionType:"ALL"}}}]')" >/dev/null
+  $DDB wait table-exists --table-name "$table"
+  until $DDB describe-table --table-name "$table" | \
+    jq -e --arg index "$index" '.Table.GlobalSecondaryIndexes[] | select(.IndexName == $index and .IndexStatus == "ACTIVE")' >/dev/null; do
+    sleep 1
+  done
+}
+
+ensure_index checkout_sessions status-expiry-index status expires_at
+ensure_index checkout_sessions recovery-index recovery_bucket completion_started_at
+
+# Upgrade 5.4 claims before starting the new checkout-service. A lease is not proof of failure.
+legacy_claims=$($DDB scan --table-name checkout_sessions \
+  --filter-expression 'attribute_exists(active_completion_attempt_id) AND attribute_not_exists(recovery_bucket)')
+while IFS= read -r claim; do
+  claim_key=$(jq -c '{session_id:.session_id}' <<< "$claim")
+  claim_values=$(jq -c --arg now "$(date +%s)" \
+    '{":attempt":.active_completion_attempt_id,":bucket":{S:"ACTIVE"},
+      ":started":{N:(((.completion_lease_until.N // $now | tonumber)-60)|tostring)},
+      ":next":{N:$now}}' <<< "$claim")
+  $DDB update-item --table-name checkout_sessions --key "$claim_key" \
+    --condition-expression 'active_completion_attempt_id=:attempt AND attribute_not_exists(recovery_bucket)' \
+    --update-expression 'SET recovery_bucket=:bucket, completion_started_at=:started, recovery_next_at=:next REMOVE delete_at' \
+    --expression-attribute-values "$claim_values" >/dev/null
+done < <(jq -c '.Items[]' <<< "$legacy_claims")
+
+create_dynamo_table checkout_outbox \
+  --attribute-definitions AttributeName=event_id,AttributeType=S \
+  --key-schema AttributeName=event_id,KeyType=HASH
+ensure_index checkout_outbox pending-index pending available_at
+ensure_index checkout_outbox pending-age-index pending created_at
+enable_ttl checkout_outbox delete_at
 
 # Permanent uniqueness reservation for merchant_reference per merchant.
 create_dynamo_table checkout_merchant_references \

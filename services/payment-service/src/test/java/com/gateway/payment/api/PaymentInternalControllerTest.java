@@ -53,6 +53,30 @@ class PaymentInternalControllerTest {
 
     @MockitoBean PaymentAuthorizationService authorizationService;
 
+    @Test
+    void attemptLookupRequiresInternalCredentials() throws Exception {
+        mockMvc.perform(
+                        org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                                        "/internal/v1/payment-attempts/ca_test")
+                                .param("checkout_session_id", "cs_test")
+                                .param("merchant_id", "mer_test"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void attemptLookupReturnsNotFoundWithoutInventingFailure() throws Exception {
+        when(authorizationService.findAttempt("ca_missing", "cs_test", "mer_test"))
+                .thenThrow(new NotFoundException("Payment attempt not found."));
+        mockMvc.perform(
+                        org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                                        "/internal/v1/payment-attempts/ca_missing")
+                                .param("checkout_session_id", "cs_test")
+                                .param("merchant_id", "mer_test")
+                                .header("X-Caller-Service", CALLER_ID)
+                                .header("X-Internal-Token", SECRET))
+                .andExpect(status().isNotFound());
+    }
+
     // -------------------------------------------------------------------------
     // Happy path
     // -------------------------------------------------------------------------

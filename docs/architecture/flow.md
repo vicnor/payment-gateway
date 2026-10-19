@@ -91,9 +91,8 @@ deduplicate by `event_id` (in the body); they should too.
 
 ### Consumer abandons (closes browser)
 - Session sits in `IN_PROGRESS` until `expires_at` (30 min default)
-- TTL deletes the Dynamo record
-- A `checkout.expired` event publishes (currently from a periodic sweep, until Dynamo TTL
-  events are wired in — see roadmap)
+- A sweep runs every 30 seconds and atomically marks eligible sessions `EXPIRED` with an outbox event
+- TTL cleans up retained sessions separately; it does not generate business events
 - Merchant receives `checkout.expired` webhook
 
 ### Acquirer times out
@@ -101,6 +100,13 @@ deduplicate by `event_id` (in the body); they should too.
   acquirer call
 - On an unavailable or indeterminate dependency: the browser receives `503` and the checkout
   session remains `IN_PROGRESS`
+- Keep the completion claim and block further charges, cancellation, and expiration until the
+  result is known. Recovery looks up the persisted payment by attempt ID; absence is unresolved,
+  not a decline. A recovered capture completes the session even after its deadline. A recovered
+  decline makes it retryable, or expires it if the deadline passed.
+- After five minutes, emit an overdue log once and expose overdue-count/oldest-age metrics.
+  Continue recovery with capped backoff. Notification delivery is task 8.3; cases with no persisted
+  outcome can remain unresolved indefinitely and require investigation.
 - Future hardening: payment reconciliation via acquirer batch reports
 
 ### Consumer presses cancel button
@@ -121,10 +127,11 @@ checks that binding before atomically marking the token used; cross-session subs
 
 ### Completion is retried
 - checkout-service derives a stable completion-attempt id from the session and token
-- an active attempt holds a 60-second DynamoDB lease; concurrent requests receive `409` and
+- an active attempt waits 60 seconds before background recovery; concurrent requests receive `409` and
   `Retry-After: 1`
 - payment-service persists the attempt id with a unique constraint, so a lost checkout-service
   response can recover the already-created payment without authorizing it again
+- expiry of a lease never permits replacement of an unresolved attempt
 
 ### Idempotency key collision
 - Same key, same body → return cached response with `Idempotent-Replay: true` header
