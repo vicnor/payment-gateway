@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceInUseException;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest(
+        properties = "gateway.checkout.workers.enabled=false",
         classes = CheckoutServiceApplication.class,
         webEnvironment = WebEnvironment.RANDOM_PORT)
 class CheckoutServiceIT extends AbstractDynamoIT {

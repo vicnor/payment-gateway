@@ -345,6 +345,17 @@ incorrect session secrets deliberately return the same generic `401` response. D
 failures return `503` and leave the session `IN_PROGRESS`; invalid or cross-session tokens are
 reported as request errors rather than card declines.
 
+Uncertain failures retain the completion claim. Subsequent completion requests return
+`409 completion_in_progress` until background recovery finds a definitive payment outcome;
+cancellation is blocked too. Reaching `expires_at` does not turn an unresolved payment into an
+expired session. Completed sessions remain readable after that deadline. Recovery never submits
+another charge.
+
+Internal recovery uses authenticated
+`GET /internal/v1/payment-attempts/{id}?checkout_session_id=...&merchant_id=...`.
+It returns the existing Payment response, or 404 if absent or mismatched. A 404 is not proof that
+authorization failed. This endpoint is not part of the public Merchant API.
+
 #### `POST /checkout/{session_id}/cancel`
 
 Consumer pressed the cancel button. Marks session `CANCELLED`, returns:
@@ -409,6 +420,17 @@ recomputing. Reject if `now - t > 5 minutes` (replay protection).
 ```
 
 The `data.object` mirrors what `GET /v1/payments/{id}` returns.
+
+Checkout events use the same envelope (`id`, `object: "event"`, `type`, epoch-second `created`,
+`livemode`, `data.object`). Their immutable v1 snapshot contains `id`, `object: "checkout_session"`,
+`merchant_id`, `status`, integer `amount`, `currency`, `merchant_reference`, nullable `payment_id`,
+`created`, `updated_at`, `expires_at`, and nullable `completed_at`. It contains no checkout URL,
+secrets/hashes, tokens, customer details, or arbitrary metadata. New fields require a new event
+version in `shared-events` (the repository's stricter versioning rule applies).
+
+Checkout publishes all four lifecycle events to `checkout-events`; merchant delivery filtering
+(including the default opt-out for `checkout.created`) belongs to webhook delivery, not the outbox.
+No checkout event is emitted for entering `IN_PROGRESS` or a declined payment attempt.
 
 ### Delivery semantics
 

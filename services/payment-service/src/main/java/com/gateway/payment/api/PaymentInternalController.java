@@ -40,4 +40,15 @@ public class PaymentInternalController {
     public PaymentResponse authorizePayment(@Valid @RequestBody CreatePaymentRequest request) {
         return authorizationService.charge(request);
     }
+
+    /** Absence is not proof of failure: authorization may still be running or indeterminate. */
+    @org.springframework.web.bind.annotation.GetMapping("/payment-attempts/{id}")
+    public PaymentResponse findAttempt(
+            @org.springframework.web.bind.annotation.PathVariable String id,
+            @org.springframework.web.bind.annotation.RequestParam("checkout_session_id")
+                    String sessionId,
+            @org.springframework.web.bind.annotation.RequestParam("merchant_id")
+                    String merchantId) {
+        return authorizationService.findAttempt(id, sessionId, merchantId);
+    }
 }

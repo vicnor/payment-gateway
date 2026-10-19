@@ -6,10 +6,14 @@ gateway:
       secret-key: test
     dynamodb:
       endpoint: http://localhost:8000
+    sns:
+      endpoint: http://localhost:4566
     kms:
       endpoint: http://localhost:4566
       key-id: alias/checkout-idempotency-dev
   checkout:
+    outbox:
+      topic-arn: arn:aws:sns:eu-north-1:000000000000:checkout-events
     base-url: http://localhost:3000
     payment-service:
       base-url: http://localhost:8102

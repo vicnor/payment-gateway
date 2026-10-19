@@ -327,7 +327,7 @@ Establish the machine-readable public contract after both v1 Merchant API aggreg
 - Tests cover: secret mismatch, expired session, idempotent complete (retry posts same token →
   returns same outcome)
 
-### 5.5 Outbox + events
+### ✅ 5.5 Outbox + events
 
 Same pattern as payment-service.
 
@@ -337,6 +337,11 @@ Same pattern as payment-service.
   Postgres, see https://aws.amazon.com/blogs/database/the-transactional-outbox-pattern-using-amazon-dynamodb/)
 - Events published: `checkout.created`, `checkout.completed`, `checkout.cancelled`,
   `checkout.expired`
+
+Implemented with an indexed DynamoDB poller and conditional leases, atomic session/event writes,
+30-day published-event retention, and a 30-second expiration sweep. Uncertain payment attempts
+remain protected and recover through an authenticated payment-service lookup. Five-minute
+overdue logs and metrics are implemented; actual notification delivery stays in 8.3.
 
 ---
 
@@ -472,6 +477,10 @@ Same pattern as payment-service.
 - Key metrics: session-creation rate, session-completion rate, authorization latency,
   outbox-publish lag, webhook-delivery success rate, token-mint rate
 - Grafana dashboard JSON committed to `infrastructure/observability/`
+- Wire actual notifications for checkout payment recovery: alert when
+  `checkout.payment_resolution.overdue > 0`, grouped by service/environment, and notify on
+  resolution. Task 5.5 supplies structured logs and metrics only; no unattended notification
+  channel exists until this task.
 
 ---
 

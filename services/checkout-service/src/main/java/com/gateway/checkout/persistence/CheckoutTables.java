@@ -15,6 +15,11 @@ public class CheckoutTables {
     }
 
     @Bean
+    public DynamoDbTable<CheckoutOutboxItem> checkoutOutboxTable() {
+        return enhancedClient.table("checkout_outbox", CheckoutOutboxItem.TABLE_SCHEMA);
+    }
+
+    @Bean
     public DynamoDbTable<CheckoutSessionItem> checkoutSessionsTable() {
         return enhancedClient.table("checkout_sessions", CheckoutSessionItem.TABLE_SCHEMA);
     }

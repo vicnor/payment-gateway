@@ -20,8 +20,7 @@ class CheckoutSessionClientContractTest {
 
         CheckoutSessionClient.AuthenticatedSession result =
                 new ObjectMapper()
-                        .readValue(
-                                response, CheckoutSessionClient.AuthenticatedSession.class);
+                        .readValue(response, CheckoutSessionClient.AuthenticatedSession.class);
 
         assertThat(result.sessionId()).isEqualTo("cs_test");
         assertThat(result.merchantId()).isEqualTo("mer_test");

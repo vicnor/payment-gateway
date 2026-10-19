@@ -35,17 +35,13 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
-import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 @Service
 public class CheckoutSessionService {
     private static final Set<String> CURRENCIES = Set.of("DKK", "EUR", "USD", "SEK", "NOK");
     private static final Set<String> LOCALES = Set.of("da-DK", "en-US");
-    private final DynamoDbClient dynamo;
+    private final com.gateway.checkout.persistence.CheckoutTransitions transitions;
     private final DynamoDbTable<CheckoutSessionItem> sessions;
     private final MerchantConfigClient merchants;
     private final CheckoutIdempotencyStore idempotency;
@@ -54,14 +50,14 @@ public class CheckoutSessionService {
     private final Clock clock;
 
     public CheckoutSessionService(
-            DynamoDbClient dynamo,
             @Qualifier("checkoutSessionsTable") DynamoDbTable<CheckoutSessionItem> sessions,
             MerchantConfigClient merchants,
             CheckoutIdempotencyStore idempotency,
             CheckoutProperties properties,
             SecureRandom random,
-            Clock clock) {
-        this.dynamo = dynamo;
+            Clock clock,
+            com.gateway.checkout.persistence.CheckoutTransitions transitions) {
+        this.transitions = transitions;
         this.sessions = sessions;
         this.merchants = merchants;
         this.idempotency = idempotency;
@@ -151,30 +147,7 @@ public class CheckoutSessionService {
                     "invalid_checkout_session_state",
                     "Checkout session cannot be cancelled from status " + status + ".");
         }
-        long now = clock.instant().getEpochSecond();
-        try {
-            dynamo.updateItem(
-                    UpdateItemRequest.builder()
-                            .tableName(sessions.tableName())
-                            .key(Map.of("session_id", s(id)))
-                            .conditionExpression(
-                                    "merchant_id=:merchant AND (#status=:created OR #status=:progress) AND expires_at > :now")
-                            .updateExpression("SET #status=:cancelled, updated_at=:now")
-                            .expressionAttributeNames(Map.of("#status", "status"))
-                            .expressionAttributeValues(
-                                    Map.of(
-                                            ":merchant",
-                                            s(merchantId),
-                                            ":created",
-                                            s("CREATED"),
-                                            ":progress",
-                                            s("IN_PROGRESS"),
-                                            ":cancelled",
-                                            s("CANCELLED"),
-                                            ":now",
-                                            n(now)))
-                            .build());
-        } catch (ConditionalCheckFailedException race) {
+        if (!transitions.cancel(item)) {
             CheckoutSessionItem current = expireIfNecessary(findOwned(merchantId, id));
             if (CheckoutSessionStatus.CANCELLED.name().equals(current.getStatus()))
                 return response(current, idempotency.checkoutUrl(current));
@@ -186,35 +159,7 @@ public class CheckoutSessionService {
     }
 
     private CheckoutSessionItem expireIfNecessary(CheckoutSessionItem item) {
-        long now = clock.instant().getEpochSecond();
-        CheckoutSessionStatus status = CheckoutSessionStatus.valueOf(item.getStatus());
-        if (item.getExpiresAt() > now
-                || (status != CheckoutSessionStatus.CREATED
-                        && status != CheckoutSessionStatus.IN_PROGRESS)) return item;
-        try {
-            dynamo.updateItem(
-                    UpdateItemRequest.builder()
-                            .tableName(sessions.tableName())
-                            .key(Map.of("session_id", s(item.getSessionId())))
-                            .conditionExpression(
-                                    "(#status=:created OR #status=:progress) AND expires_at <= :now")
-                            .updateExpression("SET #status=:expired, updated_at=:now")
-                            .expressionAttributeNames(Map.of("#status", "status"))
-                            .expressionAttributeValues(
-                                    Map.of(
-                                            ":created",
-                                            s("CREATED"),
-                                            ":progress",
-                                            s("IN_PROGRESS"),
-                                            ":expired",
-                                            s("EXPIRED"),
-                                            ":now",
-                                            n(now)))
-                            .build());
-        } catch (ConditionalCheckFailedException ignored) {
-            // A concurrent terminal transition won; return its current state.
-        }
-        return sessions.getItem(Key.builder().partitionValue(item.getSessionId()).build());
+        return transitions.expire(item);
     }
 
     private CheckoutSessionItem findOwned(String merchantId, String id) {

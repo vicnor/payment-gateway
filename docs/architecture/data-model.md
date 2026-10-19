@@ -20,6 +20,8 @@ and the corresponding migration file in lockstep.
 **Table:** `checkout_sessions`
 **Primary key:** `session_id` (S)
 **GSI:** `merchant-created-index` — HASH `merchant_id` (S), RANGE `created_at` (N)
+**Worker GSIs:** `status-expiry-index` — HASH `status`, RANGE `expires_at`;
+`recovery-index` — HASH `recovery_bucket`, RANGE `completion_started_at` (sparse).
 **TTL attribute:** `delete_at` (N, epoch seconds; 30-day retention)
 **Billing:** `PAY_PER_REQUEST`
 
@@ -58,7 +60,8 @@ and the corresponding migration file in lockstep.
 ```
 
 While authorization is running, the item also contains an opaque completion-attempt id, a
-SHA-256 token digest, and a 60-second lease. The token itself is never stored by checkout-service.
+SHA-256 token digest, and a 60-second lease before recovery starts. An expired lease never permits
+a second authorization. The token itself is never stored by checkout-service.
 The last browser-safe completion result is retained so a retry with the same token returns the
 same outcome. Failed payments remain attempts on an `IN_PROGRESS` session; only a captured
 payment populates the session's terminal `payment_id`.
@@ -68,13 +71,36 @@ payment populates the session's terminal `payment_id`.
 ```
 CREATED → IN_PROGRESS → COMPLETED
                       → CANCELLED
-       → EXPIRED (TTL or explicit on read)
+       → EXPIRED (periodic sweep or explicit on read)
 ```
 
 `IN_PROGRESS` is entered when the consumer first fetches `/checkout/{id}/session-details`.
 `EXPIRED` is enforced on read if `now > expires_at` even before TTL deletes the record.
 `expires_at` is the business deadline. DynamoDB TTL uses `delete_at`, 30 days after creation, so
 expired sessions remain retrievable long enough for merchant support and reliable event handling.
+
+An unresolved authorization blocks cancellation and expiration. Its claim sets
+`recovery_bucket=ACTIVE`, `completion_started_at`, and `recovery_next_at`, and removes `delete_at`
+so cleanup cannot lose unresolved work. Recovery uses conditional claims and capped backoff,
+tracking `recovery_attempts`. A definitive result clears recovery fields and restores 30-day
+retention. `overdue_logged` suppresses repeated overdue logs across service instances.
+
+### Checkout outbox
+
+`checkout_outbox` uses `event_id` (S) as its primary key. Each item contains an immutable JSON
+`payload`, `created_at` (epoch seconds), and, while unpublished, `pending=PENDING` and
+`available_at` (epoch seconds). `pending-index` partitions by `pending` and sorts by `available_at`;
+`pending-age-index` partitions by `pending` and sorts by `created_at` for backlog-age metrics.
+
+Session creation and each terminal transition write their event in the same DynamoDB transaction.
+The publisher conditionally sets `lease_owner` and moves `available_at` 30 seconds forward,
+increments `attempts`, and sends the stored payload to SNS. SNS calls are bounded to 10 seconds.
+Only the current lease owner can acknowledge publication. Success sets `published_at` and
+`delete_at=published_at+30 days`, then removes the pending index keys. Failure retries with capped
+backoff; process crashes recover when the lease expires. Unpublished items have no cleanup TTL.
+Delivery is at-least-once; publication/acknowledgement crashes can duplicate the same event ID.
+TTL cleanup is asynchronous. The single pending partition is a v1 scale limit; shard it before
+high-volume deployment. No event ordering guarantee is added by these indexes.
 
 **Notes:**
 - `session_secret_hash` is a SHA-256 of the secret carried in the URL as `?k=...`. The plain

@@ -6,6 +6,8 @@ import java.util.Map;
 public interface PaymentClient {
     PaymentResult create(CreatePayment command);
 
+    java.util.Optional<PaymentResult> find(String attemptId, String sessionId, String merchantId);
+
     record CreatePayment(
             String completionAttemptId,
             String checkoutSessionId,

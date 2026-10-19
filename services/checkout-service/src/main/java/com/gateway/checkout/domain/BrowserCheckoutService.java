@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 @Service
 public class BrowserCheckoutService {
-    private static final long COMPLETION_LEASE_SECONDS = 60;
+    private final com.gateway.checkout.persistence.CheckoutTransitions transitions;
     private final DynamoDbClient dynamo;
     private final DynamoDbTable<CheckoutSessionItem> sessions;
     private final CheckoutSessionAuthenticator authenticator;
@@ -38,7 +38,9 @@ public class BrowserCheckoutService {
             @Qualifier("checkoutSessionsTable") DynamoDbTable<CheckoutSessionItem> sessions,
             CheckoutSessionAuthenticator authenticator,
             PaymentClient payments,
-            Clock clock) {
+            Clock clock,
+            com.gateway.checkout.persistence.CheckoutTransitions transitions) {
+        this.transitions = transitions;
         this.dynamo = dynamo;
         this.sessions = sessions;
         this.authenticator = authenticator;
@@ -103,32 +105,7 @@ public class BrowserCheckoutService {
 
         long now = now();
         try {
-            dynamo.updateItem(
-                    UpdateItemRequest.builder()
-                            .tableName(sessions.tableName())
-                            .key(key(id))
-                            .conditionExpression(
-                                    "(#s=:created OR #s=:progress) AND expires_at>:now AND "
-                                            + "(attribute_not_exists(active_completion_attempt_id) OR completion_lease_until<:now)")
-                            .updateExpression(
-                                    "SET #s=:progress, active_completion_attempt_id=:attempt, "
-                                            + "active_completion_token_hash=:tokenHash, completion_lease_until=:lease, updated_at=:now")
-                            .expressionAttributeNames(Map.of("#s", "status"))
-                            .expressionAttributeValues(
-                                    Map.of(
-                                            ":created",
-                                            s("CREATED"),
-                                            ":progress",
-                                            s("IN_PROGRESS"),
-                                            ":now",
-                                            n(now),
-                                            ":attempt",
-                                            s(attemptId),
-                                            ":tokenHash",
-                                            s(tokenHash),
-                                            ":lease",
-                                            n(now + COMPLETION_LEASE_SECONDS)))
-                            .build());
+            transitions.claim(id, attemptId, tokenHash);
         } catch (ConditionalCheckFailedException race) {
             item = authenticator.authenticate(id, secret);
             replay = replay(item, tokenHash);
@@ -139,6 +116,8 @@ public class BrowserCheckoutService {
                     "completion_in_progress", "A checkout completion is already in progress.");
         }
 
+        item.setActiveCompletionAttemptId(attemptId);
+        item.setActiveCompletionTokenHash(tokenHash);
         try {
             PaymentClient.PaymentResult payment =
                     payments.create(
@@ -152,11 +131,11 @@ public class BrowserCheckoutService {
                                     token,
                                     item.getMetadata()));
             if ("CAPTURED".equals(payment.status())) {
-                finishCaptured(id, attemptId, tokenHash, payment.id());
+                transitions.resolve(item, payment);
                 return new CompleteCheckoutResponse(
                         "COMPLETED", payment.id(), null, null, null, successUrl(item));
             }
-            finishFailed(id, attemptId, tokenHash, payment);
+            transitions.resolve(item, payment);
             return new CompleteCheckoutResponse(
                     "FAILED",
                     payment.id(),
@@ -164,8 +143,12 @@ public class BrowserCheckoutService {
                     payment.failureMessage(),
                     true,
                     null);
-        } catch (RuntimeException ex) {
-            releaseClaim(id, attemptId);
+        } catch (com.gateway.shared.web.error.ValidationException ex) {
+            transitions.release(id, attemptId);
+            throw ex;
+        } catch (ConflictException ex) {
+            if ("token_session_mismatch".equals(ex.code())) transitions.release(id, attemptId);
+            // A used token may belong to a previously authorized but not yet persisted payment.
             throw ex;
         }
     }
@@ -174,29 +157,7 @@ public class BrowserCheckoutService {
         CheckoutSessionItem item = authenticator.authenticate(id, secret);
         if (CheckoutSessionStatus.CANCELLED.name().equals(item.getStatus()))
             return new CancelCheckoutResponse(item.getCancelUrl());
-        long now = now();
-        try {
-            dynamo.updateItem(
-                    UpdateItemRequest.builder()
-                            .tableName(sessions.tableName())
-                            .key(key(id))
-                            .conditionExpression(
-                                    "(#s=:created OR #s=:progress) AND expires_at>:now AND "
-                                            + "attribute_not_exists(active_completion_attempt_id)")
-                            .updateExpression("SET #s=:cancelled, updated_at=:now")
-                            .expressionAttributeNames(Map.of("#s", "status"))
-                            .expressionAttributeValues(
-                                    Map.of(
-                                            ":created",
-                                            s("CREATED"),
-                                            ":progress",
-                                            s("IN_PROGRESS"),
-                                            ":cancelled",
-                                            s("CANCELLED"),
-                                            ":now",
-                                            n(now)))
-                            .build());
-        } catch (ConditionalCheckFailedException race) {
+        if (!transitions.cancel(item)) {
             CheckoutSessionItem current = authenticator.authenticate(id, secret);
             if (CheckoutSessionStatus.CANCELLED.name().equals(current.getStatus()))
                 return new CancelCheckoutResponse(current.getCancelUrl());
@@ -207,78 +168,6 @@ public class BrowserCheckoutService {
                     "invalid_checkout_session_state", "Checkout session cannot be cancelled.");
         }
         return new CancelCheckoutResponse(item.getCancelUrl());
-    }
-
-    private void finishCaptured(String id, String attemptId, String tokenHash, String paymentId) {
-        long now = now();
-        updateTerminal(
-                id,
-                attemptId,
-                "SET #s=:completed, payment_id=:payment, completed_at=:now, updated_at=:now, "
-                        + "last_completion_token_hash=:tokenHash, last_completion_status=:completed "
-                        + "REMOVE active_completion_attempt_id, active_completion_token_hash, completion_lease_until",
-                Map.of(
-                        ":completed",
-                        s("COMPLETED"),
-                        ":payment",
-                        s(paymentId),
-                        ":now",
-                        n(now),
-                        ":tokenHash",
-                        s(tokenHash)));
-    }
-
-    private void finishFailed(
-            String id, String attemptId, String tokenHash, PaymentClient.PaymentResult p) {
-        long now = now();
-        Map<String, AttributeValue> values = new java.util.HashMap<>();
-        values.put(":progress", s("IN_PROGRESS"));
-        values.put(":payment", s(p.id()));
-        values.put(":now", n(now));
-        values.put(":tokenHash", s(tokenHash));
-        values.put(":failed", s("FAILED"));
-        values.put(":retry", AttributeValue.fromBool(true));
-        values.put(":code", s(p.failureCode() == null ? "payment_failed" : p.failureCode()));
-        values.put(
-                ":message", s(p.failureMessage() == null ? "Payment failed." : p.failureMessage()));
-        updateTerminal(
-                id,
-                attemptId,
-                "SET #s=:progress, updated_at=:now, last_completion_token_hash=:tokenHash, "
-                        + "last_completion_payment_id=:payment, last_completion_status=:failed, last_failure_code=:code, "
-                        + "last_failure_message=:message, last_retry_allowed=:retry "
-                        + "REMOVE active_completion_attempt_id, active_completion_token_hash, completion_lease_until",
-                values);
-    }
-
-    private void updateTerminal(
-            String id, String attemptId, String expression, Map<String, AttributeValue> values) {
-        Map<String, AttributeValue> all = new java.util.HashMap<>(values);
-        all.put(":attempt", s(attemptId));
-        dynamo.updateItem(
-                UpdateItemRequest.builder()
-                        .tableName(sessions.tableName())
-                        .key(key(id))
-                        .conditionExpression("active_completion_attempt_id=:attempt")
-                        .updateExpression(expression)
-                        .expressionAttributeNames(Map.of("#s", "status"))
-                        .expressionAttributeValues(all)
-                        .build());
-    }
-
-    private void releaseClaim(String id, String attemptId) {
-        try {
-            dynamo.updateItem(
-                    UpdateItemRequest.builder()
-                            .tableName(sessions.tableName())
-                            .key(key(id))
-                            .conditionExpression("active_completion_attempt_id=:attempt")
-                            .updateExpression(
-                                    "REMOVE active_completion_attempt_id, active_completion_token_hash, completion_lease_until")
-                            .expressionAttributeValues(Map.of(":attempt", s(attemptId)))
-                            .build());
-        } catch (ConditionalCheckFailedException ignored) {
-        }
     }
 
     private CompleteCheckoutResponse replay(CheckoutSessionItem item, String tokenHash) {
